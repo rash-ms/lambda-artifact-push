@@ -1,0 +1,317 @@
+on:
+    workflow_call:
+        inputs:
+            working_dir:
+                description: "Describing the path to the terraform module configuration"
+                required: false
+                type: string
+            version:
+                description: "Terraform Version to be used"
+                type: string
+                default: "~1.2.6"
+            environment_plan:
+                description: "The prefix of the Github env for the plan"
+                required: false
+                type: string
+            environment_apply:
+                description: "The prefix of the Github env for the apply"
+                required: false
+                type: string
+            main_branch:
+                type: string
+                default: main
+            infra_dir:
+                type: string
+                required: true
+                description: "The path to the module terraform tfvars files"
+            aws_default_region:
+                description: "AWS region for the plan and apply"
+                type: string
+                required: true
+                default: "us-east-1"
+            enable_branch_apply:
+                type: boolean
+                required: false
+                default: false
+            retention_days:
+                type: number
+                required: false
+                default: 1
+            lambda_zip_bucket:
+              description: "S3 bucket where Lambda zips will be uploaded"
+              required: false
+              type: string
+            lambda_zip_prefix:
+              description: "Prefix path inside the S3 bucket for Lambda zips"
+              required: false
+              type: string
+              default: "lambda-zip-file"
+        secrets:
+            account_id:
+                required: true
+            role_to_assume:
+                required: true
+            tf_env_vars:
+                required: false
+
+permissions:
+    id-token: write
+    contents: read
+
+
+env:
+    AWS_REGION: ${{ inputs.aws_default_region }}
+jobs:
+    plan:
+        name: Terraform Plan
+        runs-on: ubuntu-latest
+        environment: ${{ inputs.environment_plan }}
+        outputs:
+            infra_dir: ${{ steps.terraform_modules.outputs.infra_dir }}
+        steps:
+            - name: Checkout Respository
+              uses: actions/checkout@v4
+
+            - name: Configure AWS credentials using OIDC
+              uses: aws-actions/configure-aws-credentials@v2
+              with:
+                  role-to-assume: arn:aws:iam::${{ secrets.account_id }}:role/${{ secrets.role_to_assume }}
+                  aws-region: ${{ inputs.aws_default_region }}
+
+            - uses: hashicorp/setup-terraform@v3
+              name: Setup Terraform
+              with:
+                terraform_version: ${{ inputs.version }}
+                terraform_wrapper: false
+
+            - name: Verify Caller Identity
+              run: |
+                echo "AWS Account: $(aws sts get-caller-identity --query Account --output text)"
+                echo "Role Verified: $(aws sts get-caller-identity --query Arn --output text | sed 's/:[^:]*$/:**MASKED**/g')"
+                echo "Verifying AWS Identity..."
+                aws sts get-caller-identity
+
+            - name: Masked secret tf_ev_vars values
+              run: |
+                echo "${{ secrets.tf_env_vars }}" | while IFS= read -r line ; do
+                    value="${line#*=}"
+                    echo "::add-mask::$value"
+                done
+            - name: Write tf_env_vars to GITHUB_ENV file
+              run: |
+                cat > $GITHUB_ENV << EOF
+                ${{ secrets.tf_env_vars }}
+                EOF
+
+            - name: Terraform modules
+              id: terraform_modules
+              run: |
+                infra_dir=()
+                module_dirs=($(find "${{ inputs.working_dir}}/${{ inputs.infra_dir }}" -mindepth 1 -maxdepth 1 -type d))
+                if [ ${#module_dirs[@]} -eq 0 ]; then
+                    infra_dir+=("${{ inputs.infra_dir }}")
+                else
+                    for module_dir in "${module_dirs[@]}"; do
+                        module=$(basename "$module_dir")
+                        sub_dirs=($(find "$module_dir" -mindepth 1 -maxdepth 1 -type d))
+                        if [ ${#sub_dirs[@]} -gt 0 ]; then
+                            for sub_dir in "${sub_dirs[@]}"; do
+                                nested_dirs=($(find "$sub_dir" -mindepth 1 -maxdepth 1 -type d))
+                                if [ ${#nested_dirs[@]} -gt 0 ]; then
+                                    for nested_dir in "${nested_dirs[@]}"; do
+                                        infra_dir+=("${{ inputs.infra_dir }}/$module/$(basename "$sub_dir")/$(basename "$nested_dir")")
+
+                                    done
+                                else
+                                    infra_dir+=("${{ inputs.infra_dir }}/$module/$(basename "$sub_dir")")
+                                fi
+                            done
+                        else
+                            infra_dir+=("${{ inputs.infra_dir }}/$module")
+                        fi
+                    done
+                fi
+                echo "Infra Directories: ${infra_dir[@]}"
+                echo "infra_dir=$(IFS=, ; echo "${infra_dir[*]}")" >> "$GITHUB_OUTPUT"
+
+
+            - name: Terraform Format
+              run: |
+                error_flag=0
+                IFS=',' read -r -a infra_dirs <<< "${{ steps.terraform_modules.outputs.infra_dir }}"
+                for infra_dir in "${infra_dirs[@]}"; do
+                    module=$(basename "$infra_dir")
+                    echo -e "\003[35m Format: ${{ inputs.working_dir }}/terraform/$module \033[0m \n"
+                    terraform fmt -diff=true -write=false -check=true "${{ inputs.working_dir }}/terraform/$module" || error_flag=1
+                done
+                if [[ error_flag -ne 0 ]]; then exit 1; fi
+
+            - name: Initialising Terraform
+              run: |
+                set +e
+                IFS=',' read -r -a infra_dirs <<< "${{ steps.terraform_modules.outputs.infra_dir }}"
+                for infra_dir in "${infra_dirs[@]}"; do
+                    module=$(basename "$infra_dir")
+                    echo -e "--------------- \n \033 [35m init: $infra_dir \033[0m \n--------------"
+                    cd "${{ inputs.working_dir }}/terraform/$module" > /dev/null || exit 1
+                    terraform init -backend-config="../../$infra_dir/backend.tfvars" || error_flag=1
+                    cd - > /dev/null
+                done
+                if [[ error_flag -ne 0 ]]; then exit 1; fi
+
+            - name: Terraform Validate
+              run: |
+                set +e
+                IFS=',' read -r -a infra_dirs <<< "${{ steps.terraform_modules.outputs.infra_dir }}"
+                for infra_dir in "${infra_dirs[@]}"; do
+                    module=$(basename "$infra_dir")
+                    echo -e "---------------\n \033[35m Validate: ${{ inputs.working_dir }}/terraform/$module |033[0m \n-------------"
+                    cd "${{ inputs.working_dir }}/terraform/$module" > /dev/null || exit 1
+                    terraform validate || error_flag=1
+                    if ! grep -qr 'backend "s3"'; then
+                        echo -e "\033[31m ERROR: The backend in ${{ inputs.working_dir }}/terraform/$module not in 'backend \"s3\"'. \033[0m"; error_flag=1
+                    fi
+                    cd - > /dev/null
+                done
+                if [[ error_flag -ne 0 ]]; then exit 1; fi
+
+            - name: Terraform Plan
+              id: plan
+              run: |
+                set +e
+                mkdir -p "terraform_plan"
+                IFS=',' read -r -a infra_dirs <<< "${{ steps.terraform_modules.outputs.infra_dir }}"
+                for infra_dir in "${infra_dirs[@]}"; do
+                    module=$(basename "$infra_dir")
+                    echo -e "-------------\n \033[35m plan: $infra_dir \033[0m \n -------------"
+                    cd "${{ inputs.working_dir }}/terraform/$module" > /dev/null || exit 1
+                    plan_dir="${infra_dir//\//-}"
+                    terraform plan -lock-timeout=30s -var-file="../../$infra_dir/terraform.tfvars" -out="$GITHUB_WORKSPACE/terraform_plan/${plan_dir}.plan" || error_flag=1
+                    echo "# Terraform Plan for $module" >> $GITHUB_STEP_SUMMARY
+                    echo '```' >> $GITHUB_STEP_SUMMARY
+                    terraform show -no-color "$GITHUB_WORKSPACE/terraform_plan/${plan_dir}.plan" >> $GITHUB_STEP_SUMMARY
+                    echo '```' >> $GITHUB_STEP_SUMMARY
+                    cd - > /dev/null
+                done
+                if [[ error_flag -ne 0 ]]; then exit 1; fi
+
+            - name: Upload Artifact
+              uses: actions/upload-artifact@v4
+              with:
+                name: ${{ github.workflow }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ hashFiles(format('{0}/{1}', inputs.working_dir, inputs.infra_dir)) }}
+                path: |
+                    terraform_plan/*.plan
+                retention-days: ${{ inputs.retention_days }}
+
+            - name: Verify Plan Files Before Upload
+              run: |
+                ls -l terraform_plan/
+
+            - name: Zip and upload Lambda Handler to S3
+              run: |
+                BUCKET="${{ inputs.lambda_zip_bucket }}"
+                LAMBDA_PREFIX="${{ inputs.lambda_zip_prefix }}"
+            
+                for DIR in lambda/*/; do
+                  if [ -d "$DIR" ] && compgen -G "$DIR"*.py > /dev/null; then
+                    MODULE=$(basename "$DIR")
+                    ZIP_NAME="${MODULE}.zip"
+            
+                    echo "Zipping $MODULE"
+                    rm -f "$ZIP_NAME"
+                    zip -j "$ZIP_NAME" "$DIR"*.py
+            
+                    echo "Uploading $ZIP_NAME to s3://$BUCKET/$LAMBDA_PREFIX/$ZIP_NAME"
+                    aws s3 cp "$ZIP_NAME" "s3://$BUCKET/$LAMBDA_PREFIX/$ZIP_NAME"
+                  else
+                    echo "Skipping $DIR — no .py files found."
+                  fi
+                done
+
+    apply:
+        needs: plan
+        if: ${{ github.ref_name == inputs.main_branch || inputs.enable_branch_apply == true }}
+        name: Terraform Apply
+        runs-on: ubuntu-latest
+        environment: ${{ inputs.environment_apply }}
+        steps:
+            - uses: actions/checkout@v4
+            - name: Configure AWS credentials using OIDC
+              uses: aws-actions/configure-aws-credentials@v2
+              with:
+                  role-to-assume: arn:aws:iam::${{ secrets.account_id }}:role/${{ secrets.role_to_assume }}
+                  aws-region: ${{ inputs.aws_default_region }}
+
+            - uses: hashicorp/setup-terraform@v3
+              name: Setup Terraform
+              with:
+                terraform_version: ${{ inputs.version }}
+                terraform_wrapper: false
+
+            - name: Verify Caller Identity
+              run: |
+                 echo "AWS Account: $(aws sts get-caller-identity --query Account --output text)"
+                 echo "Role Verified: $(aws sts get-caller-identity --query Arn --output text | sed 's/:[^:]*$/:**MASKED**/g')"
+                 echo "Verifying AWS Identity..."
+                 aws sts get-caller-identity
+
+            - name: Masked secret tf_ev_vars values
+              run: |
+                echo "${{ secrets.tf_env_vars }}" | while IFS= read -r line ; do
+                    value="${line#*=}"
+                    echo "::add-mask::$value"
+                done
+
+            - name: Write tf_env_vars to GITHUB_ENV file
+              run: |
+                cat > $GITHUB_ENV << EOF
+                ${{ secrets.tf_env_vars }}
+                EOF
+
+            - name: Download Artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: ${{ github.workflow }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ hashFiles(format('{0}/{1}', inputs.working_dir, inputs.infra_dir)) }}
+                  path: |
+                      terraform_plan/      
+
+            - name: Verify Downloaded Plan
+              run: |
+                ls -l terraform_plan/
+
+            - name: Initialising Terraform
+              run: |
+                set +e
+                IFS=',' read -r -a infra_dirs <<< "${{ needs.plan.outputs.infra_dir }}"
+                for infra_dir in "${infra_dirs[@]}"; do
+                    module=$(basename "$infra_dir")
+                    echo -e "--------------- \n \033 [35m init: $infra_dir \033[0m \n--------------"
+                    cd "${{ inputs.working_dir }}/terraform/$module" > /dev/null || exit 1
+                    terraform init -backend-config="../../$infra_dir/backend.tfvars" || error_flag=1
+                    cd - > /dev/null
+                done
+                if [[ error_flag -ne 0 ]]; then exit 1; fi
+
+            - name: Terraform Plan
+              id: plan
+              run: |
+                  set +e
+                  IFS=',' read -r -a infra_dirs <<< "${{ needs.plan.outputs.infra_dir }}"
+                  for infra_dir in "${infra_dirs[@]}"; do
+                      module=$(basename "$infra_dir")
+                      echo -e "-------------\n \033[35m Apply: $infra_dir \033[0m \n -------------"
+                      cd "${{ inputs.working_dir }}/terraform/$module" > /dev/null || exit 1
+                      echo "${{ inputs.working_dir }}/terraform/$module"
+
+                      plan_dir="${infra_dir//\//-}"
+                      plan_path="$GITHUB_WORKSPACE/terraform_plan/${plan_dir}.plan"  
+                      
+                      if [[ ! -f "$plan_path" ]]; then
+                          echo "Plan file not found at: $plan_path"
+                          exit 1
+                      fi  
+                      
+                      terraform apply "$plan_path" || exit 1
+                      cd - > /dev/null
+                  done
+                  set -e

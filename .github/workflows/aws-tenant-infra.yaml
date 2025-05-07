@@ -1,0 +1,44 @@
+name: aws-tenant-infra
+
+on:
+  push:
+    paths:
+      - '.github/workflows/aws-tenant-infra.yml'
+      - '.github/workflows/lit-terraf
+      orm.yml'
+      - 'infra/**'
+
+jobs:
+  data-platform-nonprod-us-east-1:
+    uses: ./.github/workflows/lit-terraform.yml
+    permissions:
+      id-token: write
+      contents: read
+    with:
+      version: 1.2.6
+      environment_plan: data-platform-nonprod-protected
+      environment_apply: data-platform-nonprod-protected
+      infra_dir: data-platform-nonprod/us-east-1
+      working_dir: infra
+      aws_default_region: us-east-1
+      main_branch: main
+    secrets:
+      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+#  data-platform-prod-us-east-1:
+#    needs: data-platform-nonprod-us-east-1
+#    uses: ./.github/workflows/lit-terraform.yml
+#    id-token: write
+#    contents: read
+#    with:
+#      version: 1.2.6
+#      environment_plan: data-platform-prod-protected
+#      environment_apply: data-platform-prod-protected
+#      infra_dir: data-platform-prod/us-east-1
+#      working_dir: infra
+#      aws_default_region: us-east-1
+#      main_branch: main
+#    secrets:
+#      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
