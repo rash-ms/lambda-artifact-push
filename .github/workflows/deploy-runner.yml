@@ -178,24 +178,6 @@ jobs:
                 done
                 if [[ error_flag -ne 0 ]]; then exit 1; fi
 
-
-            - name: Load Lambda Metadata and Export TF_VARs (Plan)
-              run: |
-                export LAMBDA_METADATA=$(cat terraform_plan/lambda_metadata.json | jq -c)
-            
-                IFS=',' read -r -a infra_dirs <<< "${{ steps.terraform_modules.outputs.infra_dir }}"
-                for infra_dir in "${infra_dirs[@]}"; do
-                  module=$(basename "$infra_dir")
-            
-                  S3_KEY=$(echo "$LAMBDA_METADATA" | jq -r --arg m "$module" '.[$m].s3_key // empty')
-                  CODE_HASH=$(echo "$LAMBDA_METADATA" | jq -r --arg m "$module" '.[$m].hash // empty')
-            
-                  if [[ -n "$S3_KEY" && -n "$CODE_HASH" ]]; then
-                    echo "TF_VAR_s3_key=$S3_KEY" >> $GITHUB_ENV
-                    echo "TF_VAR_source_code_hash=$CODE_HASH" >> $GITHUB_ENV
-                  fi
-                done
-
             - name: Zip and Upload Lambda Handler File to S3
               if: ${{ inputs.lambda_zip_bucket != '' }}
               run: |
@@ -249,6 +231,23 @@ jobs:
                 
                 mkdir -p terraform_plan
                 cp $METADATA_FILE terraform_plan/
+
+            - name: Load Lambda Metadata and Export TF_VARs (Plan)
+              run: |
+                export LAMBDA_METADATA=$(cat terraform_plan/lambda_metadata.json | jq -c)
+            
+                IFS=',' read -r -a infra_dirs <<< "${{ steps.terraform_modules.outputs.infra_dir }}"
+                for infra_dir in "${infra_dirs[@]}"; do
+                  module=$(basename "$infra_dir")
+            
+                  S3_KEY=$(echo "$LAMBDA_METADATA" | jq -r --arg m "$module" '.[$m].s3_key // empty')
+                  CODE_HASH=$(echo "$LAMBDA_METADATA" | jq -r --arg m "$module" '.[$m].hash // empty')
+            
+                  if [[ -n "$S3_KEY" && -n "$CODE_HASH" ]]; then
+                    echo "TF_VAR_s3_key=$S3_KEY" >> $GITHUB_ENV
+                    echo "TF_VAR_source_code_hash=$CODE_HASH" >> $GITHUB_ENV
+                  fi
+                done
 
             - name: Terraform Plan
               id: plan
