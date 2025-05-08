@@ -26,8 +26,11 @@ jobs:
     secrets:
       account_id: ${{ secrets.ACCOUNT_ID }}
       role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
-#      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-#      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#     aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#     aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      slack_env_vars: |
+        TF_VAR_slackwebhook_nonprod=${{ secrets.SLACK_WEBHOOK_URL_NONPROD }}
+
 
 #  dataeng-prod:
 #    needs: dataeng-nonprod
@@ -38,12 +41,14 @@ jobs:
 #      version: 1.2.6
 #      environment_plan: dataeng-prod-protected
 #      environment_apply: dataeng-prod-protected
-#      infra_dir: dataeng-prod/us-east-1
+#      infra_dir: dataeng-infra-prod
 #      working_dir: infra
 #      aws_default_region: us-east-1
 #      main_branch: main
 #    secrets:
 #      account_id:  ${{ secrets.ACCOUNT_ID }}
 #      role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
-#      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-#      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+##      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+##      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#      slack_env_vars: |
+#        TF_VAR_slackwebhook_prod=${{ secrets.SLACK_WEBHOOK_URL_PROD }}

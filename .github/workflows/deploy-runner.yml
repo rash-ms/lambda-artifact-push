@@ -53,7 +53,7 @@ on:
                 required: true
             role_to_assume:
                 required: true
-            tf_env_vars:
+            slack_env_vars:
                 required: false
 
 permissions:
@@ -95,15 +95,15 @@ jobs:
 
             - name: Masked secret tf_ev_vars values
               run: |
-                echo "${{ secrets.tf_env_vars }}" | while IFS= read -r line ; do
+                echo "${{ secrets.slack_env_vars }}" | while IFS= read -r line ; do
                     value="${line#*=}"
                     echo "::add-mask::$value"
                 done
 
-            - name: Write tf_env_vars to GITHUB_ENV file
+            - name: Write slack_env_vars to GITHUB_ENV file
               run: |
                 cat > $GITHUB_ENV << EOF
-                ${{ secrets.tf_env_vars }}
+                ${{ secrets.slack_env_vars }}
                 EOF
 
             - name: Terraform modules
@@ -323,15 +323,15 @@ jobs:
 
             - name: Masked secret tf_ev_vars values
               run: |
-                echo "${{ secrets.tf_env_vars }}" | while IFS= read -r line ; do
+                echo "${{ secrets.slack_env_vars }}" | while IFS= read -r line ; do
                     value="${line#*=}"
                     echo "::add-mask::$value"
                 done
 
-            - name: Write tf_env_vars to GITHUB_ENV file
+            - name: Write slack_env_vars to GITHUB_ENV file
               run: |
                 cat > $GITHUB_ENV << EOF
-                ${{ secrets.tf_env_vars }}
+                ${{ secrets.slack_env_vars }}
                 EOF
 
             - name: Download Artifact
