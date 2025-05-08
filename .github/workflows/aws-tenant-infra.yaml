@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/aws-tenant-infra.yml'
-      - '.github/workflows/lit-terraf
+      - '.github/workflows/lit-terraform
       orm.yml'
       - 'infra/**'
 

@@ -207,24 +207,48 @@ jobs:
               run: |
                 ls -l terraform_plan/
 
-            - name: Zip and upload Lambda Handler to S3
+            - name: Zip and upload changed Lambda Handlers to S3
+              if: ${{ inputs.lambda_zip_bucket != '' }}
               run: |
                 BUCKET="${{ inputs.lambda_zip_bucket }}"
                 LAMBDA_PREFIX="${{ inputs.lambda_zip_prefix }}"
             
-                for DIR in lambda/*/; do
-                  if [ -d "$DIR" ] && compgen -G "$DIR"*.py > /dev/null; then
-                    MODULE=$(basename "$DIR")
-                    ZIP_NAME="${MODULE}.zip"
+                # Ensure full git history is available for comparison
+                git fetch --no-tags --prune --depth=0 origin +refs/heads/*:refs/remotes/origin/*
             
-                    echo "Zipping $MODULE"
+                # Compare pushed branch to its remote tracking branch
+                BASE_REF="origin/${{ github.ref_name }}"
+                echo "Comparing changes between $BASE_REF and HEAD"
+            
+                CHANGED_PY_FILES=$(git diff --name-only "$BASE_REF"...HEAD | grep '\.py$' || true)
+            
+                if [[ -z "$CHANGED_PY_FILES" ]]; then
+                  echo "No changed Python files to process."
+                  exit 0
+                fi
+                
+                set +e
+                IFS=',' read -r -a infra_dirs <<< "${{ steps.terraform_modules.outputs.infra_dir }}"
+            
+                for infra_dir in "${infra_dirs[@]}"; do
+                  module=$(basename "$infra_dir")
+                  lambda_dir="${{ inputs.working_dir }}/terraform/$module"
+            
+                  # Check if any changed .py file belongs to this module
+                  if echo "$CHANGED_PY_FILES" | grep -q "^${lambda_dir}/.*\.py$"; then
+                    echo -e "---------------\n \033[35m Checking Lambda directory: $lambda_dir \033[0m \n-------------"
+                    cd "$lambda_dir" > /dev/null || continue
+            
+                    ZIP_NAME="${module}.zip"
                     rm -f "$ZIP_NAME"
-                    zip -j "$ZIP_NAME" "$DIR"*.py
+                    zip -j "$ZIP_NAME" *.py
             
                     echo "Uploading $ZIP_NAME to s3://$BUCKET/$LAMBDA_PREFIX/$ZIP_NAME"
                     aws s3 cp "$ZIP_NAME" "s3://$BUCKET/$LAMBDA_PREFIX/$ZIP_NAME"
+            
+                    cd - > /dev/null
                   else
-                    echo "Skipping $DIR — no .py files found."
+                    echo "Skipping $module — no .py files found in $lambda_dir."
                   fi
                 done
 
