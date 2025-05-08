@@ -38,35 +38,35 @@ resource "aws_lambda_function" "cpp_integration_slackbot_lambda" {
   }
 }
 
-resource "aws_lambda_permission" "cpp_integration_lambda_sns_invoke" {
-  provider = aws.us
-
-  for_each = toset(local.sns_topic_arns)
-
-  statement_id  = "AllowExecutionFromSNS-${replace(each.value, "[:/]", "-")}"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.cpp_integration_slackbot_lambda.function_name
-  principal     = "sns.amazonaws.com"
-  source_arn    = each.value
-}
-
-resource "aws_sns_topic_subscription" "cpp_integration_sns_subscription_us" {
-  provider  = aws.us
-  topic_arn = "arn:aws:sns:us-east-1:273354624134:userplatform_cpp_firehose_failure_alert_topic_us"
-  protocol  = "lambda"
-  endpoint  = aws_lambda_function.cpp_integration_slackbot_lambda.arn
-}
-
-resource "aws_sns_topic_subscription" "cpp_integration_sns_subscription_eu" {
-  provider  = aws.eu
-  topic_arn = "arn:aws:sns:eu-central-1:273354624134:userplatform_cpp_firehose_failure_alert_topic_eu"
-  protocol  = "lambda"
-  endpoint  = aws_lambda_function.cpp_integration_slackbot_lambda.arn
-}
-
-resource "aws_sns_topic_subscription" "cpp_integration_sns_subscription_ap" {
-  provider  = aws.ap
-  topic_arn = "arn:aws:sns:ap-northeast-1:273354624134:userplatform_cpp_firehose_failure_alert_topic_ap"
-  protocol  = "lambda"
-  endpoint  = aws_lambda_function.cpp_integration_slackbot_lambda.arn
-}
+# resource "aws_lambda_permission" "cpp_integration_lambda_sns_invoke" {
+#   provider = aws.us
+#
+#   for_each = toset(local.sns_topic_arns)
+#
+#   statement_id  = "AllowExecutionFromSNS-${replace(each.value, "[:/]", "-")}"
+#   action        = "lambda:InvokeFunction"
+#   function_name = aws_lambda_function.cpp_integration_slackbot_lambda.function_name
+#   principal     = "sns.amazonaws.com"
+#   source_arn    = each.value
+# }
+#
+# resource "aws_sns_topic_subscription" "cpp_integration_sns_subscription_us" {
+#   provider  = aws.us
+#   topic_arn = "arn:aws:sns:us-east-1:273354624134:userplatform_cpp_firehose_failure_alert_topic_us"
+#   protocol  = "lambda"
+#   endpoint  = aws_lambda_function.cpp_integration_slackbot_lambda.arn
+# }
+#
+# resource "aws_sns_topic_subscription" "cpp_integration_sns_subscription_eu" {
+#   provider  = aws.eu
+#   topic_arn = "arn:aws:sns:eu-central-1:273354624134:userplatform_cpp_firehose_failure_alert_topic_eu"
+#   protocol  = "lambda"
+#   endpoint  = aws_lambda_function.cpp_integration_slackbot_lambda.arn
+# }
+#
+# resource "aws_sns_topic_subscription" "cpp_integration_sns_subscription_ap" {
+#   provider  = aws.ap
+#   topic_arn = "arn:aws:sns:ap-northeast-1:273354624134:userplatform_cpp_firehose_failure_alert_topic_ap"
+#   protocol  = "lambda"
+#   endpoint  = aws_lambda_function.cpp_integration_slackbot_lambda.arn
+# }
