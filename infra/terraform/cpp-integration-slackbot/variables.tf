@@ -32,7 +32,7 @@ variable "slack_mentions" {
   default     = []
 }
 
-variable "slack_webhook_url" {
+variable "slackwebhook_nonprod" {
   description = "Slack webhook URL"
   type        = string
 }

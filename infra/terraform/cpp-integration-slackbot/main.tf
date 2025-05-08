@@ -31,7 +31,7 @@ resource "aws_lambda_function" "cpp_integration_slackbot_lambda" {
 
   environment {
     variables = {
-      SLACK_WEBHOOK_URL = var.slack_webhook_url
+      SLACK_WEBHOOK_URL = var.slackwebhook_nonprod
       # SLACK_MENTIONS    = join(",", var.slack_mentions)
       SLACK_MENTIONS = join(" ", var.slack_mentions)
     }
