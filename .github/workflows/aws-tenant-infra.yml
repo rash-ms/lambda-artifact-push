@@ -4,12 +4,12 @@ on:
   push:
     paths:
       - '.github/workflows/aws-tenant-infra.yml'
-      - '.github/workflows/lit-terraform.yml'
+      - '.github/workflows/deploy-runner.yml'
       - 'infra/**'
 
 jobs:
   dataeng-nonprod-us-east-1:
-    uses: ./.github/workflows/lit-terraform.yml
+    uses: ./.github/workflows/deploy-runner.yml
     permissions:
       id-token: write
       contents: read
@@ -27,7 +27,7 @@ jobs:
 
 #  dataeng-prod-us-east-1:
 #    needs: data-eng-nonprod-us-east-1
-#    uses: ./.github/workflows/lit-terraform.yml
+#    uses: ./.github/workflows/deploy-runner.yml
 #    id-token: write
 #    contents: read
 #    with:

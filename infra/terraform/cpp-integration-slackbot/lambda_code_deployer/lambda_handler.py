@@ -4,7 +4,7 @@ import os
 
 http = urllib3.PoolManager()
 SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
-MENTION_NAMES = os.environ.get('SLACK_MENTIONS', '')  # e.g., "<@U12345678> <@U87654321>" or "@devops"
+MENTION_NAMES = mentions = os.environ.get("SLACK_MENTIONS", "").split(",") # e.g., "<@U12345678> <@U87654321>" or "@devops"
 
 def lambda_handler(event, context):
     for record in event['Records']:
