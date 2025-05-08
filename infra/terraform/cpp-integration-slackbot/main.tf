@@ -21,23 +21,6 @@ resource "aws_iam_policy_attachment" "cpp_integration_slackbot_lambda_logs" {
 
 resource "aws_lambda_function" "cpp_integration_slackbot_lambda" {
   provider         = aws.us
-  function_name    = "slackbot-function"
-  filename         = "function.zip"
-  handler          = "index.handler"
-  runtime          = "python3.9"
-  role             = aws_iam_role.cpp_integration_slackbot_lambda_role.arn
-  source_code_hash = filebase64sha256("function.zip")
-
-  environment {
-    variables = {
-      SLACK_WEBHOOK_URL = var.slack_webhook_url
-      SLACK_MENTIONS    = join(",", var.slack_mentions)
-    }
-  }
-}
-
-resource "aws_lambda_function" "cpp_integration_slackbot_lambda" {
-  provider         = aws.us
   function_name    = "cpp_integration_slackbot_lambda-function"
   s3_bucket        = var.lambda_s3_bucket # replace with your actual bucket
   s3_key           = var.s3_key           # passed from CI/CD
