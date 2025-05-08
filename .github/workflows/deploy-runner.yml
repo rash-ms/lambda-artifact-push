@@ -178,27 +178,6 @@ jobs:
                 done
                 if [[ error_flag -ne 0 ]]; then exit 1; fi
 
-            - name: Terraform Plan
-              id: plan
-              run: |
-                set +e
-                mkdir -p "terraform_plan"
-                IFS=',' read -r -a infra_dirs <<< "${{ steps.terraform_modules.outputs.infra_dir }}"
-                for infra_dir in "${infra_dirs[@]}"; do
-                    module=$(basename "$infra_dir")
-                    echo -e "-------------\n \033[35m plan: $infra_dir \033[0m \n -------------"
-                    cd "${{ inputs.working_dir }}/terraform/$module" > /dev/null || exit 1
-                    plan_dir="${infra_dir//\//-}"
-                    terraform plan -lock-timeout=30s -var-file="../../$infra_dir/terraform.tfvars" -out="$GITHUB_WORKSPACE/terraform_plan/${plan_dir}.plan" || error_flag=1
-                    echo "# Terraform Plan for $module" >> $GITHUB_STEP_SUMMARY
-                    echo '```' >> $GITHUB_STEP_SUMMARY
-                    terraform show -no-color "$GITHUB_WORKSPACE/terraform_plan/${plan_dir}.plan" >> $GITHUB_STEP_SUMMARY
-                    echo '```' >> $GITHUB_STEP_SUMMARY
-                    cd - > /dev/null
-                done
-                if [[ error_flag -ne 0 ]]; then exit 1; fi
-                
-
             - name: Zip and Upload Lambda Handler File to S3
               if: ${{ inputs.lambda_zip_bucket != '' }}
               run: |
@@ -252,6 +231,43 @@ jobs:
                 
                 mkdir -p terraform_plan
                 cp $METADATA_FILE terraform_plan/
+
+            - name: Load Lambda Metadata and Export TF_VARs (Plan)
+              run: |
+                export LAMBDA_METADATA=$(cat terraform_plan/lambda_metadata.json | jq -c)
+            
+                IFS=',' read -r -a infra_dirs <<< "${{ steps.terraform_modules.outputs.infra_dir }}"
+                for infra_dir in "${infra_dirs[@]}"; do
+                  module=$(basename "$infra_dir")
+            
+                  S3_KEY=$(echo "$LAMBDA_METADATA" | jq -r --arg m "$module" '.[$m].s3_key // empty')
+                  CODE_HASH=$(echo "$LAMBDA_METADATA" | jq -r --arg m "$module" '.[$m].hash // empty')
+            
+                  if [[ -n "$S3_KEY" && -n "$CODE_HASH" ]]; then
+                    echo "TF_VAR_s3_key=$S3_KEY" >> $GITHUB_ENV
+                    echo "TF_VAR_source_code_hash=$CODE_HASH" >> $GITHUB_ENV
+                  fi
+                done
+
+            - name: Terraform Plan
+              id: plan
+              run: |
+                set +e
+                mkdir -p "terraform_plan"
+                IFS=',' read -r -a infra_dirs <<< "${{ steps.terraform_modules.outputs.infra_dir }}"
+                for infra_dir in "${infra_dirs[@]}"; do
+                    module=$(basename "$infra_dir")
+                    echo -e "-------------\n \033[35m plan: $infra_dir \033[0m \n -------------"
+                    cd "${{ inputs.working_dir }}/terraform/$module" > /dev/null || exit 1
+                    plan_dir="${infra_dir//\//-}"
+                    terraform plan -lock-timeout=30s -var-file="../../$infra_dir/terraform.tfvars" -out="$GITHUB_WORKSPACE/terraform_plan/${plan_dir}.plan" || error_flag=1
+                    echo "# Terraform Plan for $module" >> $GITHUB_STEP_SUMMARY
+                    echo '```' >> $GITHUB_STEP_SUMMARY
+                    terraform show -no-color "$GITHUB_WORKSPACE/terraform_plan/${plan_dir}.plan" >> $GITHUB_STEP_SUMMARY
+                    echo '```' >> $GITHUB_STEP_SUMMARY
+                    cd - > /dev/null
+                done
+                if [[ error_flag -ne 0 ]]; then exit 1; fi
 
             - name: Upload Artifact
               uses: actions/upload-artifact@v4
