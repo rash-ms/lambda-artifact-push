@@ -1,9 +1,5 @@
-data "aws_lambda_function" "slack_alert_lambda" {
-  function_name = "slack-alert-function"
-}
-
-resource "aws_iam_role" "lambda_exec_role" {
-  name = "lambda_exec_role"
+resource "aws_iam_role" "cpp_integration_slackbot_lambda_role" {
+  name = "cpp_integration_slackbot_lambda_role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -17,18 +13,19 @@ resource "aws_iam_role" "lambda_exec_role" {
   })
 }
 
-resource "aws_iam_policy_attachment" "lambda_logs" {
-  name       = "lambda_logs"
-  roles      = [aws_iam_role.lambda_exec_role.name]
+resource "aws_iam_policy_attachment" "cpp_integration_slackbot_lambda_logs" {
+  name       = "cpp_integration_slackbot_lambda_logs"
+  roles      = [aws_iam_role.cpp_integration_slackbot_lambda_role.name]
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-resource "aws_lambda_function" "slack_alert_lambda" {
-  function_name    = "slack-alert-function"
+resource "aws_lambda_function" "cpp_integration_slackbot_lambda" {
+  provider         = aws.us
+  function_name    = "slackbot-function"
   filename         = "function.zip"
   handler          = "index.handler"
   runtime          = "python3.9"
-  role             = aws_iam_role.lambda_exec_role.arn
+  role             = aws_iam_role.cpp_integration_slackbot_lambda_role.arn
   source_code_hash = filebase64sha256("function.zip")
 
   environment {
@@ -39,41 +36,54 @@ resource "aws_lambda_function" "slack_alert_lambda" {
   }
 }
 
-# resource "aws_lambda_permission" "allow_sns_invoke" {
-#   statement_id  = "AllowExecutionFromSNS"
-#   action        = "lambda:InvokeFunction"
-#   function_name = aws_lambda_function.slack_alert_lambda.function_name
-#   principal     = "sns.amazonaws.com"
-#   source_arn    = "arn:aws:sns:us-east-1:123456789012:cloudwatch-alerts-topic"
-# }
+resource "aws_lambda_function" "cpp_integration_slackbot_lambda" {
+  provider         = aws.us
+  function_name    = "cpp_integration_slackbot_lambda-function"
+  s3_bucket        = var.lambda_s3_bucket # replace with your actual bucket
+  s3_key           = var.s3_key           # passed from CI/CD
+  handler          = "index.handler"
+  runtime          = "python3.9"
+  role             = aws_iam_role.cpp_integration_slackbot_lambda_role.arn
+  source_code_hash = var.source_code_hash # passed from CI/CD
 
-resource "aws_lambda_permission" "allow_sns" {
+  environment {
+    variables = {
+      SLACK_WEBHOOK_URL = var.slack_webhook_url
+      # SLACK_MENTIONS    = join(",", var.slack_mentions)
+      SLACK_MENTIONS = join(" ", var.slack_mentions)
+    }
+  }
+}
+
+resource "aws_lambda_permission" "cpp_integration_lambda_sns_invoke" {
+  provider = aws.us
+
   for_each = toset(local.sns_topic_arns)
 
   statement_id  = "AllowExecutionFromSNS-${replace(each.value, "[:/]", "-")}"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.slack_alert_lambda.function_name
+  function_name = aws_lambda_function.cpp_integration_slackbot_lambda.function_name
   principal     = "sns.amazonaws.com"
   source_arn    = each.value
 }
 
-resource "aws_sns_topic_subscription" "us" {
+resource "aws_sns_topic_subscription" "cpp_integration_sns_subscription_us" {
   provider  = aws.us
-  topic_arn = "arn:aws:sns:us-east-1:123456789012:us-alerts"
+  topic_arn = "arn:aws:sns:us-east-1:273354624134:userplatform_cpp_firehose_failure_alert_topic_us"
   protocol  = "lambda"
-  endpoint  = aws_lambda_function.slack_alert_lambda.arn
+  endpoint  = aws_lambda_function.cpp_integration_slackbot_lambda.arn
 }
 
-resource "aws_sns_topic_subscription" "eu" {
+resource "aws_sns_topic_subscription" "cpp_integration_sns_subscription_eu" {
   provider  = aws.eu
-  topic_arn = "arn:aws:sns:eu-central-1:123456789012:eu-alerts"
+  topic_arn = "arn:aws:sns:eu-central-1:273354624134:userplatform_cpp_firehose_failure_alert_topic_eu"
   protocol  = "lambda"
-  endpoint  = aws_lambda_function.slack_alert_lambda.arn
+  endpoint  = aws_lambda_function.cpp_integration_slackbot_lambda.arn
 }
 
-resource "aws_sns_topic_subscription" "ap" {
+resource "aws_sns_topic_subscription" "cpp_integration_sns_subscription_ap" {
   provider  = aws.ap
-  topic_arn = "arn:aws:sns:ap-northeast-1:123456789012:apac-alerts"
+  topic_arn = "arn:aws:sns:ap-northeast-1:273354624134:userplatform_cpp_firehose_failure_alert_topic_ap"
   protocol  = "lambda"
-  endpoint  = aws_lambda_function.slack_alert_lambda.arn
+  endpoint  = aws_lambda_function.cpp_integration_slackbot_lambda.arn
 }

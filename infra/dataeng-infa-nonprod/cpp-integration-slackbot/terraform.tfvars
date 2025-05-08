@@ -1,8 +1,6 @@
-account_id          = "273354624134"
-region              = "us-east-1"
-environment         = "dev"
-slack_channel_id   = "TXXXXXXX" # PLACE_HOLDER: Slack Channel ID
-slack_workspace_id = "TVVVVVVV" # PLACE_HOLDER: Slack Workspace ID
-
-slack_mentions    = ["@team-alerts", "TXXXXXXX"]
-slack_webhook_url = "https://hooks.slack.com/services/..."
+account_id        = "273354624134"
+region            = "us-east-1"
+environment       = "dev"
+lambda_s3_bucket  = "byt-infra-test-bucket"
+slack_mentions    = ["@U03V6VD8JHL", "@U08H78BN7K3"]
+slack_webhook_url = "https://hooks.slack.com/services/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"

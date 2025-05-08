@@ -8,7 +8,7 @@ on:
       - 'infra/**'
 
 jobs:
-  dataeng-nonprod-us-east-1:
+  dataeng-nonprod:
     uses: ./.github/workflows/deploy-runner.yml
     permissions:
       id-token: write
@@ -21,12 +21,16 @@ jobs:
       working_dir: infra
       aws_default_region: us-east-1
       main_branch: main
+      lambda_zip_bucket: byt-infra-test-bucket
+      lambda_zip_prefix: lambda_deployer_zipfile
     secrets:
-      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      account_id: ${{ secrets.ACCOUNT_ID }}
+      role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
+#      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-#  dataeng-prod-us-east-1:
-#    needs: data-eng-nonprod-us-east-1
+#  dataeng-prod:
+#    needs: dataeng-nonprod
 #    uses: ./.github/workflows/deploy-runner.yml
 #    id-token: write
 #    contents: read
@@ -39,5 +43,7 @@ jobs:
 #      aws_default_region: us-east-1
 #      main_branch: main
 #    secrets:
+#      account_id:  ${{ secrets.ACCOUNT_ID }}
+#      role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
 #      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
 #      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

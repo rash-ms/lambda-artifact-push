@@ -1,7 +1,7 @@
 locals {
   sns_topic_arns = [
-    "arn:aws:sns:us-east-1:123456789012:us-alerts",
-    "arn:aws:sns:eu-central-1:123456789012:eu-alerts",
-    "arn:aws:sns:ap-northeast-1:123456789012:apac-alerts"
+    "arn:aws:sns:us-east-1:273354624134:userplatform_cpp_firehose_failure_alert_topic_us",
+    "arn:aws:sns:eu-central-1:273354624134:userplatform_cpp_firehose_failure_alert_topic_eu",
+    "arn:aws:sns:ap-northeast-1:273354624134:userplatform_cpp_firehose_failure_alert_topic_ap"
   ]
 }

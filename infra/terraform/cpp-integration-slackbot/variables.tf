@@ -11,8 +11,19 @@ variable "environment" {
   default = "stg"
 }
 
-variable "userplatform_s3_bucket" {
-  type = map(string)
+variable "s3_key" {
+  description = "Path to the Lambda zip file in S3"
+  type        = string
+}
+
+variable "source_code_hash" {
+  description = "Base64-encoded SHA256 hash of the Lambda zip"
+  type        = string
+}
+
+variable "lambda_s3_bucket" {
+  description = "The S3 bucket where the Lambda ZIP is stored"
+  type        = string
 }
 
 variable "slack_mentions" {
@@ -24,14 +35,6 @@ variable "slack_mentions" {
 variable "slack_webhook_url" {
   description = "Slack webhook URL"
   type        = string
-}
-
-variable "slack_channel_id" {
-  type = string
-}
-
-variable "slack_workspace_id" {
-  type = string
 }
 
 variable "tenant_name" {
