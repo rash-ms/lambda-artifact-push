@@ -178,7 +178,6 @@ jobs:
                 done
                 if [[ error_flag -ne 0 ]]; then exit 1; fi
 
-            # Step 1: Zip and upload changed Lambda files, and write lambda_metadata.json
             - name: Zip and Upload Lambda Handler File to S3
               if: ${{ inputs.lambda_zip_bucket != '' }}
               run: |
@@ -187,10 +186,17 @@ jobs:
                 METADATA_FILE="lambda_metadata.json"
                 echo "{}" > $METADATA_FILE
             
-                CHANGED_PY_FILES=$(git diff --name-only HEAD~1 HEAD | grep '\.py$' || true)
+                # Fallback to all .py files if HEAD~1 doesn't exist (e.g. first commit)
+                if git rev-parse HEAD~1 >/dev/null 2>&1; then
+                  CHANGED_PY_FILES=$(git diff --name-only HEAD~1 HEAD | grep '\.py$' || true)
+                else
+                  CHANGED_PY_FILES=$(git ls-files '*.py' || true)
+                fi
             
                 if [[ -z "$CHANGED_PY_FILES" ]]; then
                   echo "No changed Python files to process."
+                  mkdir -p terraform_plan
+                  cp $METADATA_FILE terraform_plan/
                   exit 0
                 fi
             
@@ -206,7 +212,15 @@ jobs:
             
                     ZIP_NAME="${module}.zip"
                     rm -f "$ZIP_NAME"
-                    zip -j "$ZIP_NAME" *.py
+            
+                    PY_COUNT=$(find . -name "*.py" | wc -l)
+                    if [[ "$PY_COUNT" -eq 0 ]]; then
+                      echo "No .py files found to zip in $lambda_dir."
+                      cd - > /dev/null
+                      continue
+                    fi
+            
+                    find . -name "*.py" -print0 | xargs -0 zip -j "$ZIP_NAME"
             
                     S3_KEY="$LAMBDA_PREFIX/$ZIP_NAME"
                     echo "Uploading $ZIP_NAME to s3://$BUCKET/$S3_KEY"
