@@ -178,6 +178,7 @@ jobs:
                 done
                 if [[ error_flag -ne 0 ]]; then exit 1; fi
 
+            # Step 1: Zip and upload changed Lambda files, and write lambda_metadata.json
             - name: Zip and Upload Lambda Handler File to S3
               if: ${{ inputs.lambda_zip_bucket != '' }}
               run: |
@@ -185,9 +186,9 @@ jobs:
                 LAMBDA_PREFIX="${{ inputs.lambda_zip_prefix }}"
                 METADATA_FILE="lambda_metadata.json"
                 echo "{}" > $METADATA_FILE
-                        
+            
                 CHANGED_PY_FILES=$(git diff --name-only HEAD~1 HEAD | grep '\.py$' || true)
-
+            
                 if [[ -z "$CHANGED_PY_FILES" ]]; then
                   echo "No changed Python files to process."
                   exit 0
@@ -224,44 +225,45 @@ jobs:
                     echo "Skipping $module — no .py files found in $lambda_dir."
                   fi
                 done
-                
+            
                 mkdir -p terraform_plan
                 cp $METADATA_FILE terraform_plan/
 
-            - name: Load Lambda Metadata and Export TF_VARs (Plan)
-              run: |
-                export LAMBDA_METADATA=$(cat terraform_plan/lambda_metadata.json | jq -c)
-            
-                IFS=',' read -r -a infra_dirs <<< "${{ steps.terraform_modules.outputs.infra_dir }}"
-                for infra_dir in "${infra_dirs[@]}"; do
-                  module=$(basename "$infra_dir")
-            
-                  S3_KEY=$(echo "$LAMBDA_METADATA" | jq -r --arg m "$module" '.[$m].s3_key // empty')
-                  CODE_HASH=$(echo "$LAMBDA_METADATA" | jq -r --arg m "$module" '.[$m].hash // empty')
-            
-                  if [[ -n "$S3_KEY" && -n "$CODE_HASH" ]]; then
-                    echo "TF_VAR_s3_key=$S3_KEY" >> $GITHUB_ENV
-                    echo "TF_VAR_source_code_hash=$CODE_HASH" >> $GITHUB_ENV
-                  fi
-                done
-
+            # Step 2: Run Terraform Plan using values directly from lambda_metadata.json
             - name: Terraform Plan
               id: plan
               run: |
                 set +e
                 mkdir -p "terraform_plan"
+                LAMBDA_METADATA=$(cat terraform_plan/lambda_metadata.json | jq -c)
+            
                 IFS=',' read -r -a infra_dirs <<< "${{ steps.terraform_modules.outputs.infra_dir }}"
                 for infra_dir in "${infra_dirs[@]}"; do
-                    module=$(basename "$infra_dir")
-                    echo -e "-------------\n \033[35m plan: $infra_dir \033[0m \n -------------"
-                    cd "${{ inputs.working_dir }}/terraform/$module" > /dev/null || exit 1
-                    plan_dir="${infra_dir//\//-}"
-                    terraform plan -lock-timeout=30s -var-file="../../$infra_dir/terraform.tfvars" -out="$GITHUB_WORKSPACE/terraform_plan/${plan_dir}.plan" || error_flag=1
-                    echo "# Terraform Plan for $module" >> $GITHUB_STEP_SUMMARY
-                    echo '```' >> $GITHUB_STEP_SUMMARY
-                    terraform show -no-color "$GITHUB_WORKSPACE/terraform_plan/${plan_dir}.plan" >> $GITHUB_STEP_SUMMARY
-                    echo '```' >> $GITHUB_STEP_SUMMARY
-                    cd - > /dev/null
+                  module=$(basename "$infra_dir")
+                  echo -e "-------------\n \033[35m plan: $infra_dir \033[0m \n -------------"
+                  cd "${{ inputs.working_dir }}/terraform/$module" > /dev/null || exit 1
+                  plan_dir="${infra_dir//\//-}"
+            
+                  S3_KEY=$(echo "$LAMBDA_METADATA" | jq -r --arg m "$module" '.[$m].s3_key // empty')
+                  CODE_HASH=$(echo "$LAMBDA_METADATA" | jq -r --arg m "$module" '.[$m].hash // empty')
+            
+                  if [[ -z "$S3_KEY" || -z "$CODE_HASH" ]]; then
+                    echo "Missing s3_key or source_code_hash for module $module"
+                    exit 1
+                  fi
+            
+                  terraform plan \
+                    -lock-timeout=30s \
+                    -var-file="../../$infra_dir/terraform.tfvars" \
+                    -var "s3_key=$S3_KEY" \
+                    -var "source_code_hash=$CODE_HASH" \
+                    -out="$GITHUB_WORKSPACE/terraform_plan/${plan_dir}.plan" || error_flag=1
+            
+                  echo "# Terraform Plan for $module" >> $GITHUB_STEP_SUMMARY
+                  echo '```' >> $GITHUB_STEP_SUMMARY
+                  terraform show -no-color "$GITHUB_WORKSPACE/terraform_plan/${plan_dir}.plan" >> $GITHUB_STEP_SUMMARY
+                  echo '```' >> $GITHUB_STEP_SUMMARY
+                  cd - > /dev/null
                 done
                 if [[ error_flag -ne 0 ]]; then exit 1; fi
 
