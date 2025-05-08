@@ -29,7 +29,7 @@ jobs:
 #     aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
 #     aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       slack_env_vars: |
-        TF_VAR_slackwebhook_nonprod=${{ secrets.SLACK_WEBHOOK_URL_NONPROD }}
+        TF_VAR_slack_webhook_url=${{ secrets.SLACK_WEBHOOK_URL_NONPROD }}
 
 
 #  dataeng-prod:
@@ -51,4 +51,4 @@ jobs:
 ##      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
 ##      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 #      slack_env_vars: |
-#        TF_VAR_slackwebhook_prod=${{ secrets.SLACK_WEBHOOK_URL_PROD }}
+#        TF_VAR_slack_webhook_url=${{ secrets.SLACK_WEBHOOK_URL_PROD }}
