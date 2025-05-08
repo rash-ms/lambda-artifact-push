@@ -183,10 +183,10 @@ jobs:
               run: |
                 BUCKET="${{ inputs.lambda_zip_bucket }}"
                 LAMBDA_PREFIX="${{ inputs.lambda_zip_prefix }}"
-                METADATA_FILE="lambda_metadata.json"
-                echo "{}" > $METADATA_FILE
+                METADATA_FILE="$GITHUB_WORKSPACE/lambda_metadata.json"
+                echo "{}" > "$METADATA_FILE"
             
-                # Fallback to all .py files if HEAD~1 doesn't exist (e.g. first commit)
+                # Fallback for first commit
                 if git rev-parse HEAD~1 >/dev/null 2>&1; then
                   CHANGED_PY_FILES=$(git diff --name-only HEAD~1 HEAD | grep '\.py$' || true)
                 else
@@ -196,7 +196,7 @@ jobs:
                 if [[ -z "$CHANGED_PY_FILES" ]]; then
                   echo "No changed Python files to process."
                   mkdir -p terraform_plan
-                  cp $METADATA_FILE terraform_plan/
+                  cp "$METADATA_FILE" terraform_plan/
                   exit 0
                 fi
             
@@ -232,7 +232,7 @@ jobs:
                        --arg s3_key "$S3_KEY" \
                        --arg hash "$HASH" \
                        '. + {($module): {s3_key: $s3_key, hash: $hash}}' \
-                       $METADATA_FILE > tmp.json && mv tmp.json $METADATA_FILE
+                       "$METADATA_FILE" > tmp.json && mv tmp.json "$METADATA_FILE"
             
                     cd - > /dev/null
                   else
@@ -241,7 +241,8 @@ jobs:
                 done
             
                 mkdir -p terraform_plan
-                cp $METADATA_FILE terraform_plan/
+                cp "$METADATA_FILE" terraform_plan/
+
 
             # Step 2: Run Terraform Plan using values directly from lambda_metadata.json
             - name: Terraform Plan
