@@ -185,13 +185,9 @@ jobs:
                 LAMBDA_PREFIX="${{ inputs.lambda_zip_prefix }}"
                 METADATA_FILE="lambda_metadata.json"
                 echo "{}" > $METADATA_FILE
-            
-                git fetch --no-tags --prune --depth=0 origin +refs/heads/*:refs/remotes/origin/*
-                BASE_REF="origin/${{ github.ref_name }}"
-                echo "Comparing changes between $BASE_REF and HEAD"
-            
-                CHANGED_PY_FILES=$(git diff --name-only "$BASE_REF"...HEAD | grep '\.py$' || true)
-            
+                        
+                CHANGED_PY_FILES=$(git diff --name-only HEAD~1 HEAD | grep '\.py$' || true)
+
                 if [[ -z "$CHANGED_PY_FILES" ]]; then
                   echo "No changed Python files to process."
                   exit 0
