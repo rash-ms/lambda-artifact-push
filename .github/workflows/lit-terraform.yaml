@@ -207,7 +207,7 @@ jobs:
               run: |
                 ls -l terraform_plan/
 
-            - name: Zip and upload changed Lambda Handlers to S3
+            - name: Zip and Upload Lambda Handler File to S3
               if: ${{ inputs.lambda_zip_bucket != '' }}
               run: |
                 BUCKET="${{ inputs.lambda_zip_bucket }}"
