@@ -84,12 +84,6 @@ jobs:
                 echo "Verifying AWS Identity..."
                 aws sts get-caller-identity
 
-#            - name: Write slack_env_vars to GITHUB_ENV file
-#              run: |
-#                cat > $GITHUB_ENV << EOF
-#                ${{ secrets.slack_env_vars }}
-#                EOF
-
             - name: Zip Runner modules
               id: runner_modules
               run: |

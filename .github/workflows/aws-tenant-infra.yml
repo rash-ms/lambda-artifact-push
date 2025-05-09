@@ -14,7 +14,7 @@ permissions:
 jobs:
   # ---------- NONPROD ----------
   bootstrap_nonprod_us_east_1:
-    name: Discover NonProd Modules & Upload
+    name: Deploy NonProd Lambda ZipFile
     uses: ./.github/workflows/lambda-zip-runner.yml
     with:
       version: "1.2.6"
@@ -52,7 +52,7 @@ jobs:
 
   # ---------- PROD ----------
   bootstrap_prod_us_east_1:
-    name: Discover Prod Modules & Upload
+    name:  Deploy Prod Lambda ZipFile
     needs: deploy_nonprod_us_east_1
     uses: ./.github/workflows/lambda-zip-runner.yml
     with:
