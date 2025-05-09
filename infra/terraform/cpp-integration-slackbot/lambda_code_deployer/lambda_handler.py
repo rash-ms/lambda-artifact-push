@@ -4,8 +4,10 @@ import os
 
 http = urllib3.PoolManager()
 SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
-slack_user_id = os.environ.get("SLACK_MENTIONS", "").split(",") # e.g., "<@U12345678>"
-MENTION_NAMES = [f"<@{m.strip()}>" for m in slack_user_id]
+
+slack_user_id = os.environ.get("SLACK_MENTIONS", "").split() # e.g., "<@U12345678>"
+format_slk_id = [f"<@{m.strip()}>" for m in slack_user_id]
+MENTION_NAMES = " ".join(format_slk_id)
 
 def send_to_slack(event, context):
     for record in event['Records']:
@@ -57,7 +59,7 @@ def send_to_slack(event, context):
                 {
                     "type": "context",
                     "elements": [
-                        {"type": "mrkdwn", "text": " ".join(MENTION_NAMES)}
+                        {"type": "mrkdwn", "text": MENTION_NAMES}
                     ]
                 }
             ]
