@@ -137,7 +137,8 @@ jobs:
                   echo "Checking for .py files in $lambda_dir"
                   cd "$lambda_dir"
             
-                  PY_FILE=$(find . -maxdepth 1 -name "*.py" | head -n 1 | sed 's|./||')
+                  PY_FILE=$(find . -type f -name "*.py" | head -n 1 | sed 's|./||')
+                
                   if [[ -z "$PY_FILE" ]]; then
                     echo "No .py files found in $lambda_dir. Skipping."
                     cd - > /dev/null
