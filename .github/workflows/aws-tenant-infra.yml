@@ -1,54 +1,97 @@
-name: aws-tenant-infra
+name: Deploy Terraform Modules
 
 on:
   push:
     paths:
       - '.github/workflows/aws-tenant-infra.yml'
-      - '.github/workflows/deploy-runner.yml'
+      - '.github/workflows/lambda-zip-runner.yml'
       - 'infra/**'
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
-  dataeng-nonprod:
-    uses: ./.github/workflows/deploy-runner.yml
-    permissions:
-      id-token: write
-      contents: read
+  # ---------- NONPROD ----------
+  bootstrap-nonprod:
+    name: Discover NonProd Modules & Upload
+    uses: ./.github/workflows/lambda-zip-runner.yml
     with:
-      version: 1.2.6
+      version: "1.2.6"
+      working_dir: infra
+      infra_dir: dataeng-infra-nonprod
+      aws_default_region: us-east-1
       environment_plan: dataeng-nonprod-protected
       environment_apply: dataeng-nonprod-protected
-      infra_dir: dataeng-infra-nonprod
-      working_dir: infra
-      aws_default_region: us-east-1
       main_branch: main
       lambda_zip_bucket: byt-infra-test-bucket
       lambda_zip_prefix: lambda_deployer_zipfile
     secrets:
       account_id: ${{ secrets.ACCOUNT_ID }}
       role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
-#     aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-#     aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      slack_env_vars: ${{ secrets.SLACK_ENV_VARS_NONPROD }}
+
+  deploy-nonprod:
+    name: Deploy NonProd Infra
+    needs: bootstrap-nonprod
+    uses: rash-ms/planet-workflow/.github/workflows/terraform.yml@1.0.0
+    permissions:
+      id-token: write
+      contents: read
+    with:
+      version: 1.2.6
+      working_dir: infra
+      infra_dir: ${{ needs.bootstrap-nonprod.outputs.infra_dir }}
+      aws_default_region: us-east-1
+      environment_plan: dataeng-nonprod-protected
+      environment_apply: dataeng-nonprod-protected
+      main_branch: main
+#      lambda_zip_bucket: byt-infra-prod-bucket
+#      lambda_zip_prefix: lambda_deployer_zipfile
+    secrets:
+      account_id: ${{ secrets.ACCOUNT_ID }}
+      role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
       slack_env_vars: |
         TF_VAR_slack_webhook_url=${{ secrets.SLACK_WEBHOOK_URL_NONPROD }}
 
+  # ---------- PROD ----------
+  bootstrap-prod:
+    name: Discover Prod Modules & Upload
+    uses: ./.github/workflows/lambda-zip-runner.yml
+    with:
+      version: "1.2.6"
+      working_dir: infra
+      infra_dir: dataeng-infra-prod
+      aws_default_region: us-east-1
+      environment_plan: dataeng-prod-protected
+      environment_apply: dataeng-prod-protected
+      main_branch: main
+      lambda_zip_bucket: byt-infra-prod-bucket
+      lambda_zip_prefix: lambda_deployer_zipfile
+    secrets:
+      account_id: ${{ secrets.ACCOUNT_ID }}
+      role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
+      slack_env_vars: ${{ secrets.SLACK_ENV_VARS_PROD }}
 
-#  dataeng-prod:
-#    needs: dataeng-nonprod
-#    uses: ./.github/workflows/deploy-runner.yml
-#    id-token: write
-#    contents: read
-#    with:
-#      version: 1.2.6
-#      environment_plan: dataeng-prod-protected
-#      environment_apply: dataeng-prod-protected
-#      infra_dir: dataeng-infra-prod
-#      working_dir: infra
-#      aws_default_region: us-east-1
-#      main_branch: main
-#    secrets:
-#      account_id:  ${{ secrets.ACCOUNT_ID }}
-#      role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
-##      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-##      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-#      slack_env_vars: |
-#        TF_VAR_slack_webhook_url=${{ secrets.SLACK_WEBHOOK_URL_PROD }}
+  deploy-prod:
+    name: Deploy Prod Infra
+    needs: bootstrap-prod
+    uses: rash-ms/planet-workflow/.github/workflows/terraform.yml@1.0.0
+    permissions:
+      id-token: write
+      contents: read
+    with:
+      version: 1.2.6
+      working_dir: infra
+      infra_dir: ${{ needs.bootstrap-prod.outputs.infra_dir }}
+      aws_default_region: us-east-1
+      environment_plan: dataeng-prod-protected
+      environment_apply: dataeng-prod-protected
+      main_branch: main
+#      lambda_zip_bucket: byt-infra-prod-bucket
+#      lambda_zip_prefix: lambda_deployer_zipfile
+    secrets:
+      account_id: ${{ secrets.ACCOUNT_ID }}
+      role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
+      slack_env_vars: |
+        TF_VAR_slack_webhook_url=${{ secrets.SLACK_WEBHOOK_URL_PROD }}
