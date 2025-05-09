@@ -23,8 +23,8 @@ resource "aws_lambda_function" "cpp_integration_slackbot_lambda" {
   provider      = aws.us
   function_name = "cpp_integration_slackbot_lambda-function"
   s3_bucket     = var.lambda_s3_bucket
-  s3_key        = var.s3_key
-  handler       = "lambda_handler.send_to_slack"
+  s3_key        = "cpp-integration-slackbot/lambda_packager/${var.s3_key}"
+  handler       = "${var.s3_key}.send_to_slack"
   runtime       = "python3.9"
   role          = aws_iam_role.cpp_integration_slackbot_lambda_role.arn
 
