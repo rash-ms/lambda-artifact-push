@@ -16,11 +16,6 @@ variable "s3_key" {
   type        = string
 }
 
-variable "source_code_hash" {
-  description = "Base64-encoded SHA256 hash of the Lambda zip"
-  type        = string
-}
-
 variable "lambda_s3_bucket" {
   description = "The S3 bucket where the Lambda ZIP is stored"
   type        = string

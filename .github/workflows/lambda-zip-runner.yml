@@ -1,0 +1,168 @@
+name: Reusable Terraform workflow
+
+on:
+    workflow_call:
+        inputs:
+            working_dir:
+                description: "Describing the path to the terraform module configuration"
+                required: false
+                type: string
+            version:
+                description: "Terraform Version to be used"
+                type: string
+                default: "~1.2.6"
+            environment_plan:
+                description: "The prefix of the Github env for the plan"
+                required: false
+                type: string
+            environment_apply:
+                description: "The prefix of the Github env for the apply"
+                required: false
+                type: string
+            main_branch:
+                type: string
+                default: main
+            infra_dir:
+                type: string
+                required: true
+                description: "The path to the module terraform tfvars files"
+            aws_default_region:
+                description: "AWS region for the plan and apply"
+                type: string
+                required: true
+                default: "us-east-1"
+            enable_branch_apply:
+                type: boolean
+                required: false
+                default: false
+            retention_days:
+                type: number
+                required: false
+                default: 1
+            lambda_zip_bucket:
+              description: "S3 bucket where Lambda zips will be uploaded"
+              required: false
+              type: string
+        secrets:
+            account_id:
+                required: true
+            role_to_assume:
+                required: true
+            slack_env_vars:
+                required: false
+
+permissions:
+    id-token: write
+    contents: read
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        environment: ${{ inputs.environment_plan }}
+        outputs:
+            infra_dir: ${{ steps.runner_modules.outputs.infra_dir }}
+        steps:
+            - name: Checkout Respository
+              uses: actions/checkout@v4
+
+            - name: Configure AWS credentials using OIDC
+              uses: aws-actions/configure-aws-credentials@v2
+              with:
+                  role-to-assume: arn:aws:iam::${{ secrets.account_id }}:role/${{ secrets.role_to_assume }}
+                  aws-region: ${{ inputs.aws_default_region }}
+
+            - uses: hashicorp/setup-terraform@v3
+              name: Setup Terraform
+              with:
+                terraform_version: ${{ inputs.version }}
+                terraform_wrapper: false
+
+            - name: Verify Caller Identity
+              run: |
+                echo "AWS Account: $(aws sts get-caller-identity --query Account --output text)"
+                echo "Role Verified: $(aws sts get-caller-identity --query Arn --output text | sed 's/:[^:]*$/:**MASKED**/g')"
+                echo "Verifying AWS Identity..."
+                aws sts get-caller-identity
+
+#            - name: Write slack_env_vars to GITHUB_ENV file
+#              run: |
+#                cat > $GITHUB_ENV << EOF
+#                ${{ secrets.slack_env_vars }}
+#                EOF
+
+            - name: Zip Runner modules
+              id: runner_modules
+              run: |
+                infra_dir=()
+                module_dirs=($(find "${{ inputs.working_dir}}/${{ inputs.infra_dir }}" -mindepth 1 -maxdepth 1 -type d))
+                if [ ${#module_dirs[@]} -eq 0 ]; then
+                    infra_dir+=("${{ inputs.infra_dir }}")
+                else
+                    for module_dir in "${module_dirs[@]}"; do
+                        module=$(basename "$module_dir")
+                        sub_dirs=($(find "$module_dir" -mindepth 1 -maxdepth 1 -type d))
+                        if [ ${#sub_dirs[@]} -gt 0 ]; then
+                            for sub_dir in "${sub_dirs[@]}"; do
+                                nested_dirs=($(find "$sub_dir" -mindepth 1 -maxdepth 1 -type d))
+                                if [ ${#nested_dirs[@]} -gt 0 ]; then
+                                    for nested_dir in "${nested_dirs[@]}"; do
+                                        infra_dir+=("${{ inputs.infra_dir }}/$module/$(basename "$sub_dir")/$(basename "$nested_dir")")
+
+                                    done
+                                else
+                                    infra_dir+=("${{ inputs.infra_dir }}/$module/$(basename "$sub_dir")")
+                                fi
+                            done
+                        else
+                            infra_dir+=("${{ inputs.infra_dir }}/$module")
+                        fi
+                    done
+                fi
+                echo "Infra Directories: ${infra_dir[@]}"
+                echo "infra_dir=$(IFS=, ; echo "${infra_dir[*]}")" >> "$GITHUB_OUTPUT"
+
+
+            - name: Zip and Upload Lambda Handler File to S3
+              if: ${{ inputs.lambda_zip_bucket != '' }}
+              run: |
+                BUCKET="${{ inputs.lambda_zip_bucket }}"
+                WORKING_DIR="${{ inputs.working_dir }}"
+            
+                IFS=',' read -r -a infra_dirs <<< "${{ steps.runner_modules.outputs.infra_dir }}"
+            
+                for infra_dir in "${infra_dirs[@]}"; do
+                  module=$(basename "$infra_dir")
+                  lambda_dir="$WORKING_DIR/terraform/$module"
+                  
+                  echo "Checking for .py files in $lambda_dir"
+                  cd "$lambda_dir"
+            
+                  PY_FILE=$(find . -type f -name "*.py" | head -n 1 | sed 's|./||')
+                
+                  if [[ -z "$PY_FILE" ]]; then
+                    echo "No .py files found in $lambda_dir. Skipping."
+                    cd - > /dev/null
+                    continue
+                  fi
+            
+                  ZIP_NAME="${PY_FILE%.py}.zip"
+                  
+                  LAMBDA_PREFIX="$module"
+                  S3_KEY="$LAMBDA_PREFIX/$ZIP_NAME"
+                  echo "Checking if s3://$BUCKET/$S3_KEY already exists..."
+            
+                  if aws s3 ls "s3://$BUCKET/$S3_KEY" > /dev/null; then
+                    echo "File $S3_KEY already exists in S3. Skipping upload."
+                  else
+                    echo "Zipping $PY_FILE as $ZIP_NAME"
+                    zip -j "$ZIP_NAME" "$PY_FILE"
+            
+                    echo "Removing old zips in s3://$BUCKET/$LAMBDA_PREFIX/"
+                    aws s3 rm "s3://$BUCKET/$LAMBDA_PREFIX/" --recursive
+            
+                    echo "Uploading $ZIP_NAME to s3://$BUCKET/$S3_KEY"
+                    aws s3 cp "$ZIP_NAME" "s3://$BUCKET/$S3_KEY"
+                  fi
+            
+                  cd - > /dev/null
+                done

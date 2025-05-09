@@ -1,0 +1,54 @@
+#name: aws-tenant-infra
+#
+#on:
+#  push:
+#    paths:
+#      - '.github/workflows/aws-tenant-infra.yml'
+#      - '.github/workflows/deploy-runner.yml'
+#      - 'infra/**'
+#
+#jobs:
+#  dataeng-nonprod:
+#    uses: ./.github/workflows/deploy-runner.yml
+#    permissions:
+#      id-token: write
+#      contents: read
+#    with:
+#      version: 1.2.6
+#      environment_plan: dataeng-nonprod-protected
+#      environment_apply: dataeng-nonprod-protected
+#      infra_dir: dataeng-infra-nonprod
+#      working_dir: infra
+#      aws_default_region: us-east-1
+#      main_branch: main
+#      lambda_zip_bucket: byt-infra-test-bucket
+#      lambda_zip_prefix: lambda_deployer_zipfile
+#    secrets:
+#      account_id: ${{ secrets.ACCOUNT_ID }}
+#      role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
+##     aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+##     aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#      slack_env_vars: |
+#        TF_VAR_slack_webhook_url=${{ secrets.SLACK_WEBHOOK_URL_NONPROD }}
+#
+#
+##  dataeng-prod:
+##    needs: dataeng-nonprod
+##    uses: ./.github/workflows/deploy-runner.yml
+##    id-token: write
+##    contents: read
+##    with:
+##      version: 1.2.6
+##      environment_plan: dataeng-prod-protected
+##      environment_apply: dataeng-prod-protected
+##      infra_dir: dataeng-infra-prod
+##      working_dir: infra
+##      aws_default_region: us-east-1
+##      main_branch: main
+##    secrets:
+##      account_id:  ${{ secrets.ACCOUNT_ID }}
+##      role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
+###      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+###      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+##      slack_env_vars: |
+##        TF_VAR_slack_webhook_url=${{ secrets.SLACK_WEBHOOK_URL_PROD }}

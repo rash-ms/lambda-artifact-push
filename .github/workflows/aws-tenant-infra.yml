@@ -1,54 +1,90 @@
-name: aws-tenant-infra
+name: Deploy Terraform Modules
 
 on:
   push:
     paths:
       - '.github/workflows/aws-tenant-infra.yml'
-      - '.github/workflows/deploy-runner.yml'
+      - '.github/workflows/lambda-zip-runner.yml'
       - 'infra/**'
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
-  dataeng-nonprod:
-    uses: ./.github/workflows/deploy-runner.yml
+  # ---------- NONPROD ----------
+  bootstrap_nonprod_us_east_1:
+    name: Discover NonProd Modules & Upload
+    uses: ./.github/workflows/lambda-zip-runner.yml
+    with:
+      version: "1.2.6"
+      working_dir: infra
+      infra_dir: dataeng-infra-nonprod
+      aws_default_region: us-east-1
+      environment_plan: dataeng-nonprod-protected
+      environment_apply: dataeng-nonprod-protected
+      main_branch: main
+      lambda_zip_bucket: byt-infra-test-bucket
+    secrets:
+      account_id: ${{ secrets.ACCOUNT_ID }}
+      role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
+
+  deploy_nonprod_us_east_1:
+    name: Deploy NonProd Infra
+    needs: bootstrap_nonprod_us_east_1
+    uses: rash-ms/planet-workflow/.github/workflows/terraform.yml@1.0.0
     permissions:
       id-token: write
       contents: read
     with:
       version: 1.2.6
+      working_dir: infra
+      infra_dir: ${{ needs.bootstrap_nonprod_us_east_1.outputs.infra_dir }}
+      aws_default_region: us-east-1
       environment_plan: dataeng-nonprod-protected
       environment_apply: dataeng-nonprod-protected
-      infra_dir: dataeng-infra-nonprod
-      working_dir: infra
-      aws_default_region: us-east-1
       main_branch: main
-      lambda_zip_bucket: byt-infra-test-bucket
-      lambda_zip_prefix: lambda_deployer_zipfile
     secrets:
       account_id: ${{ secrets.ACCOUNT_ID }}
       role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
-#     aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-#     aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      slack_env_vars: |
+      tf_env_vars: |
         TF_VAR_slack_webhook_url=${{ secrets.SLACK_WEBHOOK_URL_NONPROD }}
 
+  # ---------- PROD ----------
+  bootstrap_prod_us_east_1:
+    name: Discover Prod Modules & Upload
+    needs: deploy_nonprod_us_east_1
+    uses: ./.github/workflows/lambda-zip-runner.yml
+    with:
+      version: "1.2.6"
+      working_dir: infra
+      infra_dir: dataeng-infra-prod
+      aws_default_region: us-east-1
+      environment_plan: dataeng-prod-protected
+      environment_apply: dataeng-prod-protected
+      main_branch: main
+      lambda_zip_bucket: byt-infra-test-bucket
+    secrets:
+      account_id: ${{ secrets.ACCOUNT_ID }}
+      role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
 
-#  dataeng-prod:
-#    needs: dataeng-nonprod
-#    uses: ./.github/workflows/deploy-runner.yml
-#    id-token: write
-#    contents: read
-#    with:
-#      version: 1.2.6
-#      environment_plan: dataeng-prod-protected
-#      environment_apply: dataeng-prod-protected
-#      infra_dir: dataeng-infra-prod
-#      working_dir: infra
-#      aws_default_region: us-east-1
-#      main_branch: main
-#    secrets:
-#      account_id:  ${{ secrets.ACCOUNT_ID }}
-#      role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
-##      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-##      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-#      slack_env_vars: |
-#        TF_VAR_slack_webhook_url=${{ secrets.SLACK_WEBHOOK_URL_PROD }}
+  deploy_prod_us_east_1:
+    name: Deploy Prod Infra
+    needs: bootstrap_prod_us_east_1
+    uses: rash-ms/planet-workflow/.github/workflows/terraform.yml@1.0.0
+    permissions:
+      id-token: write
+      contents: read
+    with:
+      version: 1.2.6
+      working_dir: infra
+      infra_dir: ${{ needs.bootstrap_prod_us_east_1.outputs.infra_dir }}
+      aws_default_region: us-east-1
+      environment_plan: dataeng-prod-protected
+      environment_apply: dataeng-prod-protected
+      main_branch: main
+    secrets:
+      account_id: ${{ secrets.ACCOUNT_ID }}
+      role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
+      tf_env_vars: |
+        TF_VAR_slack_webhook_url=${{ secrets.SLACK_WEBHOOK_URL_PROD }}
