@@ -6,7 +6,7 @@ http = urllib3.PoolManager()
 SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
 MENTION_NAMES = os.environ.get("SLACK_MENTIONS", "").split(",") # e.g., "<@U12345678> <@U87654321>" or "@devops"
 
-def lambda_handler(event, context):
+def send_to_slack(event, context):
     for record in event['Records']:
         sns_message = json.loads(record['Sns']['Message'])
 
@@ -56,7 +56,7 @@ def lambda_handler(event, context):
                 {
                     "type": "context",
                     "elements": [
-                        {"type": "mrkdwn", "text": f"{MENTION_NAMES}"}
+                        {"type": "mrkdwn", "text": " ".join(MENTION_NAMES)}
                     ]
                 }
             ]
