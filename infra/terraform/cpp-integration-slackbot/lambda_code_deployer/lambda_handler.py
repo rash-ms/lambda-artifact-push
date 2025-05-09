@@ -4,7 +4,8 @@ import os
 
 http = urllib3.PoolManager()
 SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
-MENTION_NAMES = os.environ.get("SLACK_MENTIONS", "").split(",") # e.g., "<@U12345678> <@U87654321>" or "@devops"
+slack_user_id = os.environ.get("SLACK_MENTIONS", "").split(",") # e.g., "<@U12345678>"
+MENTION_NAMES = [f"<@{m.strip()}>" for m in slack_user_id]
 
 def send_to_slack(event, context):
     for record in event['Records']:
