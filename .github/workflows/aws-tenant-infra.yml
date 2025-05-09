@@ -25,11 +25,9 @@ jobs:
       environment_apply: dataeng-nonprod-protected
       main_branch: main
       lambda_zip_bucket: byt-infra-test-bucket
-      lambda_zip_prefix: lambda_deployer_zipfile
     secrets:
       account_id: ${{ secrets.ACCOUNT_ID }}
       role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
-      slack_env_vars: ${{ secrets.SLACK_ENV_VARS_NONPROD }}
 
   deploy-nonprod:
     name: Deploy NonProd Infra
@@ -46,12 +44,10 @@ jobs:
       environment_plan: dataeng-nonprod-protected
       environment_apply: dataeng-nonprod-protected
       main_branch: main
-#      lambda_zip_bucket: byt-infra-prod-bucket
-#      lambda_zip_prefix: lambda_deployer_zipfile
     secrets:
       account_id: ${{ secrets.ACCOUNT_ID }}
       role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
-      slack_env_vars: |
+      tf_env_vars: |
         TF_VAR_slack_webhook_url=${{ secrets.SLACK_WEBHOOK_URL_NONPROD }}
 
   # ---------- PROD ----------
@@ -66,12 +62,10 @@ jobs:
       environment_plan: dataeng-prod-protected
       environment_apply: dataeng-prod-protected
       main_branch: main
-      lambda_zip_bucket: byt-infra-prod-bucket
-      lambda_zip_prefix: lambda_deployer_zipfile
+      lambda_zip_bucket: byt-infra-test-bucket
     secrets:
       account_id: ${{ secrets.ACCOUNT_ID }}
       role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
-      slack_env_vars: ${{ secrets.SLACK_ENV_VARS_PROD }}
 
   deploy-prod:
     name: Deploy Prod Infra
@@ -88,10 +82,8 @@ jobs:
       environment_plan: dataeng-prod-protected
       environment_apply: dataeng-prod-protected
       main_branch: main
-#      lambda_zip_bucket: byt-infra-prod-bucket
-#      lambda_zip_prefix: lambda_deployer_zipfile
     secrets:
       account_id: ${{ secrets.ACCOUNT_ID }}
       role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
-      slack_env_vars: |
+      tf_env_vars: |
         TF_VAR_slack_webhook_url=${{ secrets.SLACK_WEBHOOK_URL_PROD }}

@@ -43,11 +43,6 @@ on:
               description: "S3 bucket where Lambda zips will be uploaded"
               required: false
               type: string
-            lambda_zip_prefix:
-              description: "Prefix path inside the S3 bucket for Lambda zips"
-              required: false
-              type: string
-              default: "lambda-zip-file"
         secrets:
             account_id:
                 required: true
@@ -89,11 +84,11 @@ jobs:
                 echo "Verifying AWS Identity..."
                 aws sts get-caller-identity
 
-            - name: Write slack_env_vars to GITHUB_ENV file
-              run: |
-                cat > $GITHUB_ENV << EOF
-                ${{ secrets.slack_env_vars }}
-                EOF
+#            - name: Write slack_env_vars to GITHUB_ENV file
+#              run: |
+#                cat > $GITHUB_ENV << EOF
+#                ${{ secrets.slack_env_vars }}
+#                EOF
 
             - name: Zip Runner modules
               id: runner_modules
@@ -131,7 +126,6 @@ jobs:
               if: ${{ inputs.lambda_zip_bucket != '' }}
               run: |
                 BUCKET="${{ inputs.lambda_zip_bucket }}"
-                LAMBDA_PREFIX="${{ inputs.lambda_zip_prefix }}"
                 WORKING_DIR="${{ inputs.working_dir }}"
             
                 IFS=',' read -r -a infra_dirs <<< "${{ steps.runner_modules.outputs.infra_dir }}"
@@ -151,7 +145,8 @@ jobs:
                   fi
             
                   ZIP_NAME="${PY_FILE%.py}.zip"
-            
+                  
+                  LAMBDA_PREFIX="$module"
                   S3_KEY="$LAMBDA_PREFIX/$ZIP_NAME"
                   echo "Checking if s3://$BUCKET/$S3_KEY already exists..."
             
