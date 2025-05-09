@@ -24,7 +24,7 @@ resource "aws_lambda_function" "cpp_integration_slackbot_lambda" {
   function_name    = "cpp_integration_slackbot_lambda-function"
   s3_bucket        = var.lambda_s3_bucket # replace with your actual bucket
   s3_key           = var.s3_key           # passed from CI/CD
-  handler          = "index.handler"
+  handler          = "lambda_handler.lambda_handler"
   runtime          = "python3.9"
   role             = aws_iam_role.cpp_integration_slackbot_lambda_role.arn
   source_code_hash = var.source_code_hash # passed from CI/CD
