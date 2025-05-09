@@ -39,7 +39,7 @@ jobs:
     with:
       version: 1.2.6
       working_dir: infra
-      infra_dir: ${{ needs.bootstrap_nonprod_us_east_1.outputs.infra_dir }}
+      infra_dir: dataeng-infra-nonprod
       aws_default_region: us-east-1
       environment_plan: dataeng-nonprod-protected
       environment_apply: dataeng-nonprod-protected
@@ -78,7 +78,7 @@ jobs:
     with:
       version: 1.2.6
       working_dir: infra
-      infra_dir: ${{ needs.bootstrap_prod_us_east_1.outputs.infra_dir }}
+      infra_dir: dataeng-infra-prod
       aws_default_region: us-east-1
       environment_plan: dataeng-prod-protected
       environment_apply: dataeng-prod-protected
