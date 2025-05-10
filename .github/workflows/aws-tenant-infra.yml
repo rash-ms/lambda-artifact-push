@@ -34,24 +34,24 @@ jobs:
       slack_env_vars: ${{ secrets.SLACK_WEBHOOK_URL_NONPROD }}
 
 
-  # ---------- PROD ----------
-  deploy_prod_us_east_1:
-    name: Deploy Prod Infra
-    needs: deploy_nonprod_us_east_1
-    uses: ./.github/workflows/deploy-runner.yml
-    permissions:
-      id-token: write
-      contents: read
-    with:
-      version: 1.2.6
-      working_dir: infra
-      infra_dir: dataeng-infra-prod/us-east-1
-      aws_default_region: us-east-1
-      environment_plan: dataeng-prod-protected
-      environment_apply: dataeng-prod-protected
-      main_branch: main
-      lambda_zip_bucket: byt-infra-test-bucket
-    secrets:
-      account_id: ${{ secrets.ACCOUNT_ID }}
-      role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
-      slack_env_vars: ${{ secrets.SLACK_WEBHOOK_URL_PROD }}
+#  # ---------- PROD ----------
+#  deploy_prod_us_east_1:
+#    name: Deploy Prod Infra
+#    needs: deploy_nonprod_us_east_1
+#    uses: ./.github/workflows/deploy-runner.yml
+#    permissions:
+#      id-token: write
+#      contents: read
+#    with:
+#      version: 1.2.6
+#      working_dir: infra
+#      infra_dir: dataeng-infra-prod/us-east-1
+#      aws_default_region: us-east-1
+#      environment_plan: dataeng-prod-protected
+#      environment_apply: dataeng-prod-protected
+#      main_branch: main
+#      lambda_zip_bucket: byt-infra-test-bucket
+#    secrets:
+#      account_id: ${{ secrets.ACCOUNT_ID }}
+#      role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
+#      slack_env_vars: ${{ secrets.SLACK_WEBHOOK_URL_PROD }}

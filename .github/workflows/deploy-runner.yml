@@ -190,7 +190,7 @@ jobs:
       with:
         version: ${{ inputs.version }}
         working_dir: ${{ inputs.working_dir }}
-        infra_dir: ${{ needs.zip_and_upload.outputs.infra_dir }}
+        infra_dir: ${{ inputs.infra_dir }}
         aws_default_region: ${{ inputs.aws_default_region }}
         environment_plan: ${{ inputs.environment_plan }}
         environment_apply: ${{ inputs.environment_apply }}
