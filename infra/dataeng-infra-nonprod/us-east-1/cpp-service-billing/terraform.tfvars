@@ -4,4 +4,4 @@ environment      = "dev"
 lambda_s3_bucket = "byt-infra-test-bucket"
 s3_key           = "cpp-service-billing/lambda_packager" ## '<module_name>/<folder_name>'
 slack_mentions   = ["U03V6VD8JHL", "U08H78BN7K3"]
-handler_zip      = "lambda_handler_v001"
+handler_zip      = "lambda_handler_v00"
