@@ -62,6 +62,7 @@ jobs:
         environment: ${{ inputs.environment_plan }}
         outputs:
             infra_dir: ${{ steps.module_path.outputs.infra_dir }}
+            shared_handler_zip: ${{ steps.module_path.outputs.shared_handler_zip }}
         steps:
             - name: Checkout Respository
               uses: actions/checkout@v4
@@ -197,4 +198,4 @@ jobs:
         role_to_assume: ${{ secrets.role_to_assume }}
         tf_env_vars: |
           TF_VAR_slack_webhook_url=${{ secrets.slack_env_vars }}
-          TF_VAR_shared_handler_zip=${{ env.TF_VAR_shared_handler_zip }}
+          TF_VAR_shared_handler_zip=${{ needs.zip_and_upload.outputs.shared_handler_zip }}
