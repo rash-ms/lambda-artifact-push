@@ -201,4 +201,3 @@ jobs:
         tf_env_vars: |
           TF_VAR_slack_webhook_url=${{ secrets.slack_env_vars }}
           TF_VAR_shared_handler_zip=${{ needs.zip_and_upload.outputs.shared_handler_zip }}
-
