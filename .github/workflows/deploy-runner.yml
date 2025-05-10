@@ -11,14 +11,14 @@ on:
                 description: "Terraform Version to be used"
                 type: string
                 default: "~1.2.6"
-#            environment_plan:
-#                description: "The prefix of the Github env for the plan"
-#                required: false
-#                type: string
-#            environment_apply:
-#                description: "The prefix of the Github env for the apply"
-#                required: false
-#                type: string
+            environment_plan:
+                description: "The prefix of the Github env for the plan"
+                required: false
+                type: string
+            environment_apply:
+                description: "The prefix of the Github env for the apply"
+                required: false
+                type: string
             main_branch:
                 type: string
                 default: main
@@ -48,7 +48,7 @@ on:
                 required: true
             role_to_assume:
                 required: true
-            slack_env_vars:
+            tf_env_vars:
                 required: false
 
 permissions:
@@ -56,11 +56,12 @@ permissions:
     contents: read
 
 jobs:
-    deploy:
+    zip_and_upload:
+        name: Package Lambda Code
         runs-on: ubuntu-latest
-#        environment: ${{ inputs.environment_plan }}
+        environment: ${{ inputs.environment_plan }}
         outputs:
-            infra_dir: ${{ steps.runner_modules.outputs.infra_dir }}
+            infra_dir: ${{ steps.push_zip.outputs.infra_dir }}
         steps:
             - name: Checkout Respository
               uses: actions/checkout@v4
@@ -85,7 +86,7 @@ jobs:
                 aws sts get-caller-identity
 
             - name: Zip Runner modules
-              id: runner_modules
+              id: push_zip
               run: |
                 infra_dir=()
                 module_dirs=($(find "${{ inputs.working_dir}}/${{ inputs.infra_dir }}" -mindepth 1 -maxdepth 1 -type d))
@@ -122,7 +123,7 @@ jobs:
                 BUCKET="${{ inputs.lambda_zip_bucket }}"
                 WORKING_DIR="${{ inputs.working_dir }}"
             
-                IFS=',' read -r -a infra_dirs <<< "${{ steps.runner_modules.outputs.infra_dir }}"
+                IFS=',' read -r -a infra_dirs <<< "${{ steps.push_zip.outputs.infra_dir }}"
             
                 for infra_dir in "${infra_dirs[@]}"; do
                   module=$(basename "$infra_dir")
@@ -160,3 +161,24 @@ jobs:
             
                   cd - > /dev/null
                 done
+
+    deploy_terraform:
+      name: Run Terraform Deployment
+      needs: zip_and_upload
+      uses: rash-ms/planet-workflow/.github/workflows/terraform.yml@1.0.0
+      permissions:
+        id-token: write
+        contents: read
+      with:
+        version: ${{ inputs.version }}
+        working_dir: ${{ inputs.working_dir }}
+        infra_dir: ${{ needs.zip_and_upload.outputs.infra_dir }}
+        aws_default_region: ${{ inputs.aws_default_region }}
+        environment_plan: ${{ inputs.environment_plan }}
+        environment_apply: ${{ inputs.environment_apply }}
+        main_branch: ${{ inputs.main_branch }}
+      secrets:
+        account_id: ${{ secrets.account_id }}
+        role_to_assume: ${{ secrets.role_to_assume }}
+        tf_env_vars: |
+          TF_VAR_slack_webhook_url=${{ secrets.slack_env_vars }}
