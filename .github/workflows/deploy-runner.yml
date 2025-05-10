@@ -116,7 +116,6 @@ jobs:
                 echo "Infra Directories: ${infra_dir[@]}"
                 echo "infra_dir=$(IFS=, ; echo "${infra_dir[*]}")" >> $GITHUB_OUTPUT
 
-
             - name: Zip and Upload File to S3
               id: handler_zip
               if: ${{ inputs.lambda_zip_bucket != '' }}
