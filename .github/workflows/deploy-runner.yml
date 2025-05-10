@@ -62,7 +62,7 @@ jobs:
         environment: ${{ inputs.environment_plan }}
         outputs:
             infra_dir: ${{ steps.module_path.outputs.infra_dir }}
-            shared_handler_zip: ${{ steps.module_path.outputs.shared_handler_zip }}
+            shared_handler_zip: ${{ steps.handler_zip.outputs.shared_handler_zip }}
         steps:
             - name: Checkout Respository
               uses: actions/checkout@v4
@@ -118,6 +118,7 @@ jobs:
                 echo "infra_dir=$(IFS=, ; echo "${infra_dir[*]}")" >> "$GITHUB_OUTPUT"
 
             - name: Zip and Upload File to S3
+              id: handler_zip
               if: ${{ inputs.lambda_zip_bucket != '' }}
               run: |
                 BUCKET="${{ inputs.lambda_zip_bucket }}"
@@ -199,3 +200,4 @@ jobs:
         tf_env_vars: |
           TF_VAR_slack_webhook_url=${{ secrets.slack_env_vars }}
           TF_VAR_shared_handler_zip=${{ needs.zip_and_upload.outputs.shared_handler_zip }}
+
