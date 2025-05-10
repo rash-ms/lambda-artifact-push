@@ -11,6 +11,11 @@ variable "environment" {
   default = "stg"
 }
 
+variable "shared_handler_zip" {
+  description = "Reusable shared Lambda handler zip file (with .zip extension)"
+  type        = string
+}
+
 variable "s3_key" {
   description = "Path to the Lambda zip file in S3"
   type        = string
