@@ -122,7 +122,6 @@ jobs:
               run: |
                 BUCKET="${{ inputs.lambda_zip_bucket }}"
                 WORKING_DIR="${{ inputs.working_dir }}"
-#                SHARED_HANDLER_PATH=$(find "$WORKING_DIR/shared_slack_packager" -type f -name "*.py" | head -n 1)
                 SHARED_HANDLER_PATH=$(find "${GITHUB_WORKSPACE}/${WORKING_DIR}/shared_slack_packager" -type f -name "*.py" | head -n 1)
 
 
