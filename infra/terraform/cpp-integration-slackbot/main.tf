@@ -13,31 +13,31 @@ resource "aws_iam_role" "cpp_integration_slackbot_lambda_role" {
   })
 }
 
-resource "aws_iam_policy_attachment" "cpp_integration_slackbot_lambda_logs" {
-  name       = "cpp_integration_slackbot_lambda_logs"
-  roles      = [aws_iam_role.cpp_integration_slackbot_lambda_role.name]
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-# s3_key        = "cpp-integration-slackbot/lambda_packager/${var.s3_key}"
-# handler       = "${var.s3_key}.send_to_slack"
-
-resource "aws_lambda_function" "cpp_integration_slackbot_lambda" {
-  provider      = aws.us
-  function_name = "cpp_integration_slackbot_lambda-function"
-  s3_bucket     = var.lambda_s3_bucket
-  s3_key        = "${var.s3_key}/${var.shared_handler_zip}.zip"
-  handler       = "${var.shared_handler_zip}.send_to_slack"
-  runtime       = "python3.9"
-  role          = aws_iam_role.cpp_integration_slackbot_lambda_role.arn
-
-  environment {
-    variables = {
-      SLACK_WEBHOOK_URL = var.slack_webhook_url
-      SLACK_MENTIONS    = join(" ", var.slack_mentions)
-    }
-  }
-}
+# resource "aws_iam_policy_attachment" "cpp_integration_slackbot_lambda_logs" {
+#   name       = "cpp_integration_slackbot_lambda_logs"
+#   roles      = [aws_iam_role.cpp_integration_slackbot_lambda_role.name]
+#   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+# }
+#
+# # s3_key        = "cpp-integration-slackbot/lambda_packager/${var.s3_key}"
+# # handler       = "${var.s3_key}.send_to_slack"
+#
+# resource "aws_lambda_function" "cpp_integration_slackbot_lambda" {
+#   provider      = aws.us
+#   function_name = "cpp_integration_slackbot_lambda-function"
+#   s3_bucket     = var.lambda_s3_bucket
+#   s3_key        = "${var.s3_key}/${var.shared_handler_zip}.zip"
+#   handler       = "${var.shared_handler_zip}.send_to_slack"
+#   runtime       = "python3.9"
+#   role          = aws_iam_role.cpp_integration_slackbot_lambda_role.arn
+#
+#   environment {
+#     variables = {
+#       SLACK_WEBHOOK_URL = var.slack_webhook_url
+#       SLACK_MENTIONS    = join(" ", var.slack_mentions)
+#     }
+#   }
+# }
 
 # resource "aws_lambda_permission" "cpp_integration_lambda_sns_invoke" {
 #   provider = aws.us
