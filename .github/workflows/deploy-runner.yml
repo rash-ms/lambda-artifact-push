@@ -90,7 +90,7 @@ jobs:
               id: module_path
               run: |
                 infra_dir=()
-                module_dirs=($(find "${{ inputs.working_dir}}/${{ inputs.infra_dir }}" -mindepth 1 -maxdepth 1 -type d))
+                module_dirs=($(find "${{ inputs.working_dir }}/${{ inputs.infra_dir }}" -mindepth 1 -maxdepth 1 -type d))
                 if [ ${#module_dirs[@]} -eq 0 ]; then
                     infra_dir+=("${{ inputs.infra_dir }}")
                 else
