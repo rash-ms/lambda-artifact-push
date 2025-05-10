@@ -11,14 +11,14 @@ on:
                 description: "Terraform Version to be used"
                 type: string
                 default: "~1.2.6"
-            environment_plan:
-                description: "The prefix of the Github env for the plan"
-                required: false
-                type: string
-            environment_apply:
-                description: "The prefix of the Github env for the apply"
-                required: false
-                type: string
+#            environment_plan:
+#                description: "The prefix of the Github env for the plan"
+#                required: false
+#                type: string
+#            environment_apply:
+#                description: "The prefix of the Github env for the apply"
+#                required: false
+#                type: string
             main_branch:
                 type: string
                 default: main
@@ -58,7 +58,7 @@ permissions:
 jobs:
     deploy:
         runs-on: ubuntu-latest
-        environment: ${{ inputs.environment_plan }}
+#        environment: ${{ inputs.environment_plan }}
         outputs:
             infra_dir: ${{ steps.runner_modules.outputs.infra_dir }}
         steps:
