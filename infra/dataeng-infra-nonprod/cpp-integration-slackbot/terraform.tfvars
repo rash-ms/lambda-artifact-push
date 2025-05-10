@@ -3,5 +3,5 @@ region           = "us-east-1"
 environment      = "dev"
 lambda_s3_bucket = "byt-infra-test-bucket"
 #If handler code changes, update the filename and reflect it here
-s3_key           = "lambda_handler_v0.zip"
+s3_key           = "lambda_handler_v01.zip"
 slack_mentions   = ["U03V6VD8JHL", "U08H78BN7K3"]
