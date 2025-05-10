@@ -116,46 +116,59 @@ jobs:
                 echo "Infra Directories: ${infra_dir[@]}"
                 echo "infra_dir=$(IFS=, ; echo "${infra_dir[*]}")" >> "$GITHUB_OUTPUT"
 
-
             - name: Zip and Upload File to S3
               if: ${{ inputs.lambda_zip_bucket != '' }}
               run: |
                 BUCKET="${{ inputs.lambda_zip_bucket }}"
                 WORKING_DIR="${{ inputs.working_dir }}"
+                SHARED_HANDLER_PATH=$(find "$WORKING_DIR/shared_slack_packager" -type f -name "*.py" | head -n 1)
             
                 IFS=',' read -r -a infra_dirs <<< "${{ steps.module_path.outputs.infra_dir }}"
             
                 for infra_dir in "${infra_dirs[@]}"; do
                   module=$(basename "$infra_dir")
-                  lambda_dir="$WORKING_DIR/terraform/$module"
-
-                  echo -e "\n---------------\n\033[1;35mupload_zip: $lambda_dir\033[0m\n---------------\n"
-
-                  echo "Checking for .py files in $lambda_dir"
-                  cd "$lambda_dir"
+                  modules_dir="$WORKING_DIR/terraform/$module"
             
-                  PY_FILE=$(find . -type f -name "*.py" | head -n 1 | sed 's|./||')
-                
-                  if [[ -z "$PY_FILE" ]]; then
-                    echo "No .py files found in $lambda_dir. Skipping."
-                    cd - > /dev/null
-                    continue
+                  echo -e "\n---------------\n\033[1;35mupload_zip: $modules_dir\033[0m\n---------------\n"
+            
+                  cd "$modules_dir"
+            
+                  if [[ "$module" == *"slackbot"* ]]; then
+                    if [[ -z "$SHARED_HANDLER_PATH" ]]; then
+                      echo "No .py file found in shared_slack_packager. Skipping $module."
+                      cd - > /dev/null
+                      continue
+                    fi
+            
+                    echo "Module $module matches 'slackbot'. Using shared Slack handler."
+                    cp "$SHARED_HANDLER_PATH" .
+                    PY_FILE=$(basename "$SHARED_HANDLER_PATH")
+            
+                    SHARED_HANDLER_NAME="${PY_FILE%.py}"
+                    echo "TF_VAR_shared_handler_zip=$SHARED_HANDLER_NAME" >> $GITHUB_ENV
+                  else
+                    echo "Checking for .py files in $modules_dir"
+                    PY_FILE=$(find . -type f -name "*.py" | head -n 1 | sed 's|./||')
+            
+                    if [[ -z "$PY_FILE" ]]; then
+                      echo "No .py files found in $modules_dir. Skipping."
+                      cd - > /dev/null
+                      continue
+                    fi
                   fi
             
                   ZIP_NAME="${PY_FILE%.py}.zip"
-                  
-                  LAMBDA_PREFIX="$module"
-                  S3_KEY="$LAMBDA_PREFIX/$ZIP_NAME"
-                  echo "Checking if s3://$BUCKET/$S3_KEY already exists..."
+                  S3_KEY="$module/$ZIP_NAME"
             
+                  echo "Checking if s3://$BUCKET/$S3_KEY already exists..."
                   if aws s3 ls "s3://$BUCKET/$S3_KEY" > /dev/null; then
                     echo "File $S3_KEY already exists in S3. Skipping upload."
                   else
                     echo "Zipping $PY_FILE as $ZIP_NAME"
                     zip -j "$ZIP_NAME" "$PY_FILE"
             
-                    echo "Removing old zips in s3://$BUCKET/$LAMBDA_PREFIX/"
-                    aws s3 rm "s3://$BUCKET/$LAMBDA_PREFIX/" --recursive
+                    echo "Removing old zips in s3://$BUCKET/$module/"
+                    aws s3 rm "s3://$BUCKET/$module/" --recursive
             
                     echo "Uploading $ZIP_NAME to s3://$BUCKET/$S3_KEY"
                     aws s3 cp "$ZIP_NAME" "s3://$BUCKET/$S3_KEY"
@@ -184,3 +197,4 @@ jobs:
         role_to_assume: ${{ secrets.role_to_assume }}
         tf_env_vars: |
           TF_VAR_slack_webhook_url=${{ secrets.slack_env_vars }}
+          TF_VAR_shared_handler_zip=${{ env.TF_VAR_shared_handler_zip }}
