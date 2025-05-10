@@ -148,6 +148,8 @@ jobs:
             
                     SHARED_HANDLER_NAME="${PY_FILE%.py}"
                     echo "TF_VAR_shared_handler_zip=$SHARED_HANDLER_NAME" >> $GITHUB_ENV
+                    echo "shared_handler_zip=$SHARED_HANDLER_NAME" >> $GITHUB_OUTPUT
+
                   else
                     echo "Checking for .py files in $modules_dir"
                     PY_FILE=$(find . -type f -name "*.py" | head -n 1 | sed 's|./||')
