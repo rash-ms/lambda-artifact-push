@@ -1,18 +1,18 @@
-# resource "aws_iam_role" "cpp_integration_slackbot_lambda_role" {
-#   name = "cpp_integration_slackbot_lambda_role"
-#
-#   assume_role_policy = jsonencode({
-#     Version = "2012-10-17"
-#     Statement = [{
-#       Action = "sts:AssumeRole"
-#       Effect = "Allow"
-#       Principal = {
-#         Service = "lambda.amazonaws.com"
-#       }
-#     }]
-#   })
-# }
-#
+resource "aws_iam_role" "cpp_integration_slackbot_lambda_role" {
+  name = "cpp_integration_slackbot_lambda_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "lambda.amazonaws.com"
+      }
+    }]
+  })
+}
+
 # resource "aws_iam_policy_attachment" "cpp_integration_slackbot_lambda_logs" {
 #   name       = "cpp_integration_slackbot_lambda_logs"
 #   roles      = [aws_iam_role.cpp_integration_slackbot_lambda_role.name]
