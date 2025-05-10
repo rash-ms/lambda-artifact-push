@@ -48,7 +48,7 @@ on:
                 required: true
             role_to_assume:
                 required: true
-            tf_env_vars:
+            slack_env_vars:
                 required: false
 
 permissions:
