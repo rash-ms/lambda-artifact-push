@@ -91,31 +91,30 @@ jobs:
               run: |
                 infra_dir=()
                 module_dirs=($(find "${{ inputs.working_dir }}/${{ inputs.infra_dir }}" -mindepth 1 -maxdepth 1 -type d))
-                if [ ${#module_dirs[@]} -eq 0 ]; then
-                    infra_dir+=("${{ inputs.infra_dir }}")
+                if [ ${#module_dirs[@]} -eq 0 ]; then 
+                  infra_dir+=("${{ inputs.infra_dir }}")
                 else
-                    for module_dir in "${module_dirs[@]}"; do
-                        module=$(basename "$module_dir")
-                        sub_dirs=($(find "$module_dir" -mindepth 1 -maxdepth 1 -type d))
-                        if [ ${#sub_dirs[@]} -gt 0 ]; then
-                            for sub_dir in "${sub_dirs[@]}"; do
-                                nested_dirs=($(find "$sub_dir" -mindepth 1 -maxdepth 1 -type d))
-                                if [ ${#nested_dirs[@]} -gt 0 ]; then
-                                    for nested_dir in "${nested_dirs[@]}"; do
-                                        infra_dir+=("${{ inputs.infra_dir }}/$module/$(basename "$sub_dir")/$(basename "$nested_dir")")
-
-                                    done
-                                else
-                                    infra_dir+=("${{ inputs.infra_dir }}/$module/$(basename "$sub_dir")")
-                                fi
-                            done
+                  for module_dir in "${module_dirs[@]}"; do
+                    module=$(basename "$module_dir")
+                    sub_dirs=($(find "$module_dir" -mindepth 1 -maxdepth 1 -type d))
+                    if [ ${#sub_dirs[@]} -gt 0 ]; then
+                      for sub_dir in "${sub_dirs[@]}"; do
+                        nested_dirs=($(find "$sub_dir" -mindepth 1 -maxdepth 1 -type d))                   
+                        if [ ${#nested_dirs[@]} -gt 0 ]; then
+                          for nested_dir in "${nested_dirs[@]}"; do
+                            infra_dir+=("${{ inputs.infra_dir }}/$module/$(basename "$sub_dir")/$(basename "$nested_dir")")
+                          done
                         else
-                            infra_dir+=("${{ inputs.infra_dir }}/$module")
-                        fi
-                    done
+                          infra_dir+=("${{ inputs.infra_dir }}/$module/$(basename "$sub_dir")")                    
+                        fi  
+                      done
+                    else
+                      infra_dir+=("${{ inputs.infra_dir }}/$module")
+                    fi
+                  done
                 fi
                 echo "Infra Directories: ${infra_dir[@]}"
-                echo "infra_dir=$(IFS=, ; echo "${infra_dir[*]}")" >> "$GITHUB_OUTPUT"
+                echo "infra_dir=${infra_dir[*]}" >> $GITHUB_OUTPUT
 
             - name: Zip and Upload File to S3
               id: handler_zip
