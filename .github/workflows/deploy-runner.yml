@@ -142,18 +142,15 @@ jobs:
                     handler_name="${py_file%.py}"
                     echo "TF_VAR_shared_handler_zip=$handler_name" >> $GITHUB_ENV
                     echo "shared_handler_zip=$handler_name" >> $GITHUB_OUTPUT
-                
-                    REQ_FILE="$GITHUB_WORKSPACE/$WORKING_DIR/requirements.txt"
-                    [[ -f "$REQ_FILE" ]] && pip install -r "$REQ_FILE" -t "$BUILD_DIR/"
                   else
                     py_file=$(find . -type f -name "*.py" | head -n 1 | sed 's|./||')
                     [[ -z "$py_file" ]] && echo "No .py file found in $module. Skipping." && cd - > /dev/null && continue
                     cp "$py_file" "$BUILD_DIR/"
-                
-                    REQ_FILE="$GITHUB_WORKSPACE/$WORKING_DIR/requirements.txt"
-                    [[ -f "$REQ_FILE" ]] && pip install -r "$REQ_FILE" -t "$BUILD_DIR/" 
                   fi
                   
+                  REQ_FILE="$GITHUB_WORKSPACE/$WORKING_DIR/requirements.txt"
+                  [[ -f "$REQ_FILE" ]] && pip install -r "$REQ_FILE" -t "$BUILD_DIR/"
+
                   ZIP_NAME="${py_file%.py}.zip"
                   S3_KEY="$module/$ZIP_NAME"
             
