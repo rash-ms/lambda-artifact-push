@@ -21,7 +21,7 @@ variable "s3_key" {
   type        = string
 }
 
-variable "bucket_name" {
+variable "lambda_s3_bucket" {
   description = "The S3 bucket where the Lambda ZIP is stored"
   type        = string
 }
