@@ -32,7 +32,7 @@ resource "aws_lambda_function" "cpp_integration_slackbot_lambda_test" {
   environment {
     variables = {
       SLACK_WEBHOOK_URL = var.slack_webhook_url
-      SLACK_USER_ID   = join(" ", var.slack_user_id)
+      SLACK_USER_ID     = join(" ", var.slack_user_id)
     }
   }
 }
