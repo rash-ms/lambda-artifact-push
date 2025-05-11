@@ -148,8 +148,8 @@ jobs:
                     cp "$py_file" "$BUILD_DIR/"
                   fi
             
-                  [[ -f requirements.txt ]] && pip install -r requirements.txt -t "$BUILD_DIR/"
-            
+                  [[ -f "$WORKING_DIR/requirements.txt" ]] && pip install -r "$WORKING_DIR/requirements.txt" -t "$BUILD_DIR/"
+
                   ZIP_NAME="${py_file%.py}.zip"
                   S3_KEY="$module/$ZIP_NAME"
             
