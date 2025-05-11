@@ -138,7 +138,8 @@ jobs:
             
                   if [[ "$module" == *"slackbot"* && -n "$SHARED_HANDLER_PATH" ]]; then
                     cp "$SHARED_HANDLER_PATH" "$BUILD_DIR/"
-                    handler_name=$(basename "$SHARED_HANDLER_PATH" .py)
+                    py_file=$(basename "$SHARED_HANDLER_PATH")
+                    handler_name="${py_file%.py}"
                     echo "TF_VAR_shared_handler_zip=$handler_name" >> $GITHUB_ENV
                     echo "shared_handler_zip=$handler_name" >> $GITHUB_OUTPUT
                   else
