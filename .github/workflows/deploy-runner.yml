@@ -153,14 +153,19 @@ jobs:
                   ZIP_NAME="${py_file%.py}.zip"
                   S3_KEY="$module/$ZIP_NAME"
             
-                  echo "Uploading $ZIP_NAME to s3://$BUCKET/$S3_KEY"
+                  echo "Checking if s3://$BUCKET/$S3_KEY already exists..."
+                  if aws s3 ls "s3://$BUCKET/$S3_KEY" > /dev/null; then
+                    echo "File $S3_KEY already exists in S3. Skipping upload."
+                  else
+                    echo "Zipping and uploading $ZIP_NAME to s3://$BUCKET/$S3_KEY"
+                    
+                    mkdir -p "$(dirname "../$ZIP_NAME")"
+                    (cd "$BUILD_DIR" && zip -r "../$ZIP_NAME" .)
+                  
+                    aws s3 rm "s3://$BUCKET/$module/" --recursive
+                    aws s3 cp "$ZIP_NAME" "s3://$BUCKET/$S3_KEY"
+                  fi
                 
-                  mkdir -p "$(dirname "../$ZIP_NAME")"
-                  (cd "$BUILD_DIR" && zip -r "../$ZIP_NAME" .)
-
-                  aws s3 rm "s3://$BUCKET/$module/" --recursive
-                  aws s3 cp "$ZIP_NAME" "s3://$BUCKET/$S3_KEY"
-            
                   cd - > /dev/null
                 done
 
