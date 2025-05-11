@@ -26,7 +26,7 @@ variable "lambda_s3_bucket" {
   type        = string
 }
 
-variable "slack_mentions" {
+variable "slack_user_id" {
   description = "List of Slack usernames to mention"
   type        = list(string)
   default     = []

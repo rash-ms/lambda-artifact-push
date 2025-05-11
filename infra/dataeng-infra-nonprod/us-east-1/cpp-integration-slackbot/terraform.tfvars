@@ -3,4 +3,4 @@ region           = "us-east-1"
 environment      = "dev"
 lambda_s3_bucket = "byt-infra-test-bucket"
 s3_key           = "cpp-integration-slackbot" ## '<module_name>'
-slack_mentions   = ["U03V6VD8JHL", "U08H78BN7K3"]
+slack_user_id   = ["U03V6VD8JHL", "U08H78BN7K3"]
