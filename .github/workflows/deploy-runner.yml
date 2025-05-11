@@ -130,8 +130,8 @@ jobs:
                   module=$(basename "$infra_dir")
                   module_dir="$WORKING_DIR/terraform/$module"
             
-                  echo -e "\n---------------\n\033[1;35mupload_zip: $modules_dir\033[0m\n---------------\n"
-            
+                  echo -e "\n---------------\n\033[1;35mupload_zip: $module_dir\033[0m\n---------------\n"
+
                   cd "$module_dir"
                   BUILD_DIR=".zip_build"
                   rm -rf "$BUILD_DIR" && mkdir "$BUILD_DIR"
@@ -153,7 +153,7 @@ jobs:
                   S3_KEY="$module/$ZIP_NAME"
             
                   echo "Uploading $ZIP_NAME to s3://$BUCKET/$S3_KEY"
-                  (cd "$BUILD_DIR" && zip -r "../$ZIP_NAME" .)
+                  (cd "$BUILD_DIR" && zip -r "$ZIP_NAME" .)
                   aws s3 rm "s3://$BUCKET/$module/" --recursive
                   aws s3 cp "$ZIP_NAME" "s3://$BUCKET/$S3_KEY"
             
