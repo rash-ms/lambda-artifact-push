@@ -27,7 +27,7 @@ jobs:
       environment_plan: dataeng-nonprod-protected
       environment_apply: dataeng-nonprod-protected
       main_branch: main
-      lambda_zip_bucket: cn-infra-lambda-artifacts
+#      lambda_zip_bucket: cn-infra-lambda-artifacts
     secrets:
       account_id: ${{ secrets.ACCOUNT_ID }}
       role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
