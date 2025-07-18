@@ -51,6 +51,7 @@ resource "aws_lambda_function" "cppv2_generatePresignedURL_S3_lambda" {
   handler       = "${var.handler_zip}.presigner_url_s3"
   runtime       = "python3.9"
   role          = aws_iam_role.cppv2_generatePresignedURL_S3_role.arn
+  timeout       = 10 # Set to 10 seconds or more
 }
 
 # ================= API Gateway =================
