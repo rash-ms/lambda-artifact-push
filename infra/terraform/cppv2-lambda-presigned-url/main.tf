@@ -25,7 +25,7 @@ resource "aws_lambda_function" "cppv2_generatePresignedURL_S3_lambda" {
   s3_bucket     = var.lambda_s3_bucket
   s3_key        = "${var.s3_key}/${var.handler_zip}.zip"
   handler       = "${var.handler_zip}.presigner_url_s3"
-  runtime       = "python3.11"
+  runtime       = "python3.9"
   role          = aws_iam_role.cppv2_generatePresignedURL_S3_role.arn
 }
 
