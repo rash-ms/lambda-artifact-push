@@ -28,10 +28,14 @@ jobs:
       environment_apply: dataeng-nonprod-protected
       main_branch: main
       lambda_zip_bucket: cn-infra-lambda-artifacts
+      selected_modules: complete-modules
     secrets:
       account_id: ${{ secrets.ACCOUNT_ID }}
       role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
       slack_env_vars: ${{ secrets.SLACK_WEBHOOK_URL_NONPROD }}
+      destroyer_token: ${{ secrets.DESTROYER_TOKEN }}
+      render_webhook_url: ${{ secrets.RENDER_WEBHOOK_URL }}
+
 
 
 #  # ---------- PROD ----------

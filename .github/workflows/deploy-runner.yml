@@ -40,13 +40,22 @@ on:
                 required: false
                 default: 1
             lambda_zip_bucket:
-              description: "S3 bucket where Lambda zips will be uploaded"
-              required: false
-              type: string
+                description: "S3 bucket where Lambda zips will be uploaded"
+                required: false
+                type: string
+            selected_modules:
+                type: string
+                description: 'Comma-separated list of modules to run (e.g., network,auth) or "all"'
+                required: false
+                default: 'complete-modules'
         secrets:
             account_id:
                 required: true
             role_to_assume:
+                required: true
+            destroyer_token:
+                required: true
+            render_webhook_url:
                 required: true
             slack_env_vars:
                 required: false
@@ -173,7 +182,7 @@ jobs:
     deploy_terraform:
       name: Run Terraform Deployment
       needs: zip_and_upload
-      uses: rash-ms/planet-workflow/.github/workflows/terraform.yml@1.0.0
+      uses: rash-ms/planet-workflow/.github/workflows/infra-deployer.yml@1.0.0
       permissions:
         id-token: write
         contents: read
@@ -185,9 +194,12 @@ jobs:
         environment_plan: ${{ inputs.environment_plan }}
         environment_apply: ${{ inputs.environment_apply }}
         main_branch: ${{ inputs.main_branch }}
+        selected_modules: ${{ inputs.selected_modules }}
       secrets:
         account_id: ${{ secrets.account_id }}
         role_to_assume: ${{ secrets.role_to_assume }}
+        destroyer_token: ${{ secrets.destroyer_token }}
+        render_webhook_url: ${{ secrets.render_webhook_url }}
         tf_env_vars: |
-          TF_VAR_slack_webhook_url=${{ secrets.slack_env_vars }}
-          TF_VAR_shared_handler_zip=${{ needs.zip_and_upload.outputs.shared_handler_zip }}
+            TF_VAR_slack_webhook_url=${{ secrets.slack_env_vars }}
+            TF_VAR_shared_handler_zip=${{ needs.zip_and_upload.outputs.shared_handler_zip }}
