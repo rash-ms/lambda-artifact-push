@@ -118,13 +118,18 @@ resource "aws_api_gateway_deployment" "cppv2_generatePresignedURL_S3_deploy" {
   description = "Production deployment"
 }
 
+resource "aws_cloudwatch_log_group" "cppv2_generatePresignedURL_S3_logs" {
+  name              = "/aws/apigateway/cppv2_generatePresignedURL_S3_logs"
+  retention_in_days = 7
+
+}
 resource "aws_api_gateway_stage" "cppv2_generatePresignedURL_S3_stage" {
   stage_name    = "prod"
   rest_api_id   = aws_api_gateway_rest_api.cppv2_generatePresignedURL_S3_api.id
   deployment_id = aws_api_gateway_deployment.cppv2_generatePresignedURL_S3_deploy.id
 
   access_log_settings {
-    destination_arn = aws_cloudwatch_log_group.api_gw_logs.arn
+    destination_arn = aws_cloudwatch_log_group.cppv2_generatePresignedURL_S3_logs.arn
     format = jsonencode({
       requestId         = "$context.requestId",
       extendedRequestId = "$context.extendedRequestId",
