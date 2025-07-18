@@ -14,10 +14,34 @@ resource "aws_iam_role" "cppv2_generatePresignedURL_S3_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "cppv2_generatePresignedURL_S3_policy" {
-  role       = aws_iam_role.cppv2_generatePresignedURL_S3_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+# resource "aws_iam_role_policy_attachment" "cppv2_generatePresignedURL_S3_policy" {
+#   role       = aws_iam_role.cppv2_generatePresignedURL_S3_role.name
+#   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+# }
+
+resource "aws_iam_role_policy" "cppv2_generatePresignedURL_S3_policy" {
+  name = "cppv2_generatePresignedURL_S3_policy"
+  role = aws_iam_role.cppv2_generatePresignedURL_S3_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject"
+        ],
+        Resource = [
+          "arn:aws:s3:::byt-userplatform-dev-eu/*",
+          "arn:aws:s3:::byt-userplatform-dev-us/*",
+          "arn:aws:s3:::byt-userplatform-dev-ap/*"
+        ]
+      }
+    ]
+  })
 }
+
 
 # ================= Lambda Function =================
 resource "aws_lambda_function" "cppv2_generatePresignedURL_S3_lambda" {
