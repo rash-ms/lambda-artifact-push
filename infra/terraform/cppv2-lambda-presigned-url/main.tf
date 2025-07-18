@@ -166,3 +166,14 @@ resource "aws_api_gateway_stage" "cppv2_generatePresignedURL_S3_stage" {
   }
 }
 
+resource "aws_api_gateway_method_settings" "cppv2_logging_settings" {
+  rest_api_id = aws_api_gateway_rest_api.cppv2_generatePresignedURL_S3_api.id
+  stage_name  = aws_api_gateway_stage.cppv2_generatePresignedURL_S3_stage.stage_name
+  method_path = "*/*"
+
+  settings {
+    logging_level      = "INFO"
+    data_trace_enabled = true
+    metrics_enabled    = true
+  }
+}
