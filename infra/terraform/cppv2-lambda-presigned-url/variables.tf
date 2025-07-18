@@ -26,11 +26,6 @@ variable "lambda_s3_bucket" {
   type        = string
 }
 
-# variable "cpp_bucket_name" {
-#   description = "The S3 bucket where the Lambda ZIP is stored"
-#   type        = string
-# }
-
 variable "tenant_name" {
   type    = string
   default = "data-platform"
