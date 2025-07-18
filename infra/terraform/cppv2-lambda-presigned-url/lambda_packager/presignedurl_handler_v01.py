@@ -21,7 +21,7 @@ def presigner_url_s3(event, context):
     if not bucket:
         return {
             "statusCode": 400,
-            "body": json.dumps({"error": "Missing bucket name in path"}),
+            "body": json.dumps({"error": "Missing bucket name in invoke url"}),
             "headers": {"Content-Type": "application/json"}
         }
 
