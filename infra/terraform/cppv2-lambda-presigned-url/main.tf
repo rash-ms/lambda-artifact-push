@@ -81,7 +81,7 @@ resource "aws_api_gateway_method" "cppv2_generatePresignedURL_S3_method" {
   }
 }
 
-resource "aws_api_gateway_integration" "cppv2_generatePresignedURL_S3_lambda" {
+resource "aws_api_gateway_integration" "cppv2_generatePresignedURL_S3_integration" {
   rest_api_id             = aws_api_gateway_rest_api.cppv2_generatePresignedURL_S3_api.id
   resource_id             = aws_api_gateway_resource.prefix_path.id
   http_method             = aws_api_gateway_method.cppv2_generatePresignedURL_S3_method.http_method
@@ -129,12 +129,27 @@ resource "aws_api_gateway_method_settings" "cppv2_generatePresignedURL_S3_loggin
 }
 
 # ================= API Gateway Deployment =================
+# resource "aws_api_gateway_deployment" "cppv2_generatePresignedURL_S3_deploy" {
+#   depends_on  = [aws_api_gateway_integration.cppv2_generatePresignedURL_S3_integration]
+#   rest_api_id = aws_api_gateway_rest_api.cppv2_generatePresignedURL_S3_api.id
+#   description = "Deployment with logging"
+# }
+
 resource "aws_api_gateway_deployment" "cppv2_generatePresignedURL_S3_deploy" {
-  depends_on  = [aws_api_gateway_integration.cppv2_generatePresignedURL_S3_lambda]
   rest_api_id = aws_api_gateway_rest_api.cppv2_generatePresignedURL_S3_api.id
   description = "Deployment with logging"
 
+  triggers = {
+    redeploy = sha1(jsonencode([
+      aws_api_gateway_resource.prefix_path.id,
+      aws_api_gateway_method.cppv2_generatePresignedURL_S3_method.id,
+      aws_api_gateway_integration.cppv2_generatePresignedURL_S3_integration.id
+    ]))
+  }
+
+  depends_on = [aws_api_gateway_integration.cppv2_generatePresignedURL_S3_integration]
 }
+
 
 # ================= API Key and Usage Plan =================
 resource "aws_api_gateway_api_key" "cppv2_generatePresignedURL_S3_key" {
