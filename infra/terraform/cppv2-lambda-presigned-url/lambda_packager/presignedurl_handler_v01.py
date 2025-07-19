@@ -38,6 +38,7 @@ def presigner_url_s3(event, context):
 
         s3 = boto3.client("s3", region_name=region)
 
+        ##ExpiresIn: (1 hour:3600, 24 hours:86400, 7 days: 604800(maximum allowed by S3))
         url = s3.generate_presigned_url(
             "put_object",
             Params={
@@ -45,7 +46,7 @@ def presigner_url_s3(event, context):
                 "Key": key,
                 "ContentType": content_type
             },
-            ExpiresIn=900
+            ExpiresIn=3600
         )
 
         return {
