@@ -4,4 +4,4 @@ environment      = "dev"
 lambda_s3_bucket = "cn-infra-lambda-artifacts"
 s3_key           = "cppv2-lambda-presigned-url/lambda_packager" ## '<module_name>/<folder_name>'
 handler_zip      = "presignedurl_handler_v00"
-api_stage        = "presigns3url"
+api_stage        = "stg-presigns3url"
