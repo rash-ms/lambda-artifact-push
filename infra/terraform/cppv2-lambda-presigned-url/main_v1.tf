@@ -1,3 +1,53 @@
+# resource "aws_iam_role" "cppv2_generatePresignedURL_S3_role" {
+#   name = "cppv2_generatePresignedURL_S3_role"
+#   # permissions_boundary = ""
+
+#   assume_role_policy = jsonencode({
+#     Version = "2012-10-17",
+#     Statement = [{
+#       Effect = "Allow",
+#       Principal = {
+#         Service = "lambda.amazonaws.com"
+#       },
+#       Action = "sts:AssumeRole"
+#     }]
+#   })
+# }
+
+# resource "aws_iam_role_policy" "cppv2_generatePresignedURL_S3_policy" {
+#   name = "cppv2_generatePresignedURL_S3_policy"
+#   role = aws_iam_role.cppv2_generatePresignedURL_S3_role.id
+
+#   policy = jsonencode({
+#     Version = "2012-10-17",
+#     Statement = [
+#       {
+#         Effect = "Allow",
+#         Action = [
+#           "s3:PutObject",
+#           "s3:GetObject"
+#         ],
+#         Resource = [
+#           "arn:aws:s3:::byt-userplatform-dev-eu/*",
+#           "arn:aws:s3:::byt-userplatform-dev-us/*",
+#           "arn:aws:s3:::byt-userplatform-dev-ap/*"
+#         ]
+#       },
+#       {
+#         Effect = "Allow",
+#         Action = [
+#           "logs:CreateLogGroup",
+#           "logs:CreateLogStream",
+#           "logs:PutLogEvents"
+#         ],
+#         Resource = "*"
+#       }
+#     ]
+#   })
+# }
+
+
+# # =================  ********** =================
 # # ================= IAM Role for Lambda =================
 # resource "aws_iam_role" "cppv2_generatePresignedURL_S3_role" {
 #   name = "cppv2_generatePresignedURL_S3_role"

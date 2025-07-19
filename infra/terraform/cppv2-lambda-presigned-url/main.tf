@@ -1,54 +1,7 @@
 # # ================= IAM Role for Lambda =================
-# resource "aws_iam_role" "cppv2_generatePresignedURL_S3_role" {
-#   name = "cppv2_generatePresignedURL_S3_role"
-#   # permissions_boundary = ""
-
-#   assume_role_policy = jsonencode({
-#     Version = "2012-10-17",
-#     Statement = [{
-#       Effect = "Allow",
-#       Principal = {
-#         Service = "lambda.amazonaws.com"
-#       },
-#       Action = "sts:AssumeRole"
-#     }]
-#   })
-# }
-
-# resource "aws_iam_role_policy" "cppv2_generatePresignedURL_S3_policy" {
-#   name = "cppv2_generatePresignedURL_S3_policy"
-#   role = aws_iam_role.cppv2_generatePresignedURL_S3_role.id
-
-#   policy = jsonencode({
-#     Version = "2012-10-17",
-#     Statement = [
-#       {
-#         Effect = "Allow",
-#         Action = [
-#           "s3:PutObject",
-#           "s3:GetObject"
-#         ],
-#         Resource = [
-#           "arn:aws:s3:::byt-userplatform-dev-eu/*",
-#           "arn:aws:s3:::byt-userplatform-dev-us/*",
-#           "arn:aws:s3:::byt-userplatform-dev-ap/*"
-#         ]
-#       },
-#       {
-#         Effect = "Allow",
-#         Action = [
-#           "logs:CreateLogGroup",
-#           "logs:CreateLogStream",
-#           "logs:PutLogEvents"
-#         ],
-#         Resource = "*"
-#       }
-#     ]
-#   })
-# }
-
 resource "aws_iam_role" "cppv2_generatePresignedURL_S3_role" {
   name = "cppv2_generatePresignedURL_S3_role"
+  ## permissions_boundary = ""
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -145,7 +98,7 @@ resource "aws_cloudwatch_log_group" "cppv2_generatePresignedURL_S3_logs" {
 
 # ================= API Gateway Stage =================
 resource "aws_api_gateway_stage" "cppv2_generatePresignedURL_S3_stage" {
-  stage_name    = "prod"
+  stage_name    = var.api_stage
   rest_api_id   = aws_api_gateway_rest_api.cppv2_generatePresignedURL_S3_api.id
   deployment_id = aws_api_gateway_deployment.cppv2_generatePresignedURL_S3_deploy.id
 
@@ -163,7 +116,7 @@ resource "aws_api_gateway_stage" "cppv2_generatePresignedURL_S3_stage" {
   }
 }
 
-resource "aws_api_gateway_method_settings" "cppv2_logging_settings" {
+resource "aws_api_gateway_method_settings" "cppv2_generatePresignedURL_S3_logging_settings" {
   rest_api_id = aws_api_gateway_rest_api.cppv2_generatePresignedURL_S3_api.id
   stage_name  = aws_api_gateway_stage.cppv2_generatePresignedURL_S3_stage.stage_name
   method_path = "*/*"
@@ -203,7 +156,7 @@ resource "aws_api_gateway_usage_plan" "cppv2_generatePresignedURL_S3_PlanUsage" 
   }
 
   quota_settings {
-    limit  = 1000
+    limit  = 100
     period = "MONTH"
   }
 }

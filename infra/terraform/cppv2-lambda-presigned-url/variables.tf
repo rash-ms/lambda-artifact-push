@@ -11,6 +11,10 @@ variable "environment" {
   default = "stg"
 }
 
+variable "api_stage" {
+  type = string
+}
+
 variable "handler_zip" {
   description = "Reusable shared Lambda handler zip file (with .zip extension)"
   type        = string
