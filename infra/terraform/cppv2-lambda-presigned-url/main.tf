@@ -133,6 +133,7 @@ resource "aws_api_gateway_deployment" "cppv2_generatePresignedURL_S3_deploy" {
   depends_on  = [aws_api_gateway_integration.cppv2_generatePresignedURL_S3_lambda]
   rest_api_id = aws_api_gateway_rest_api.cppv2_generatePresignedURL_S3_api.id
   description = "Deployment with logging"
+
 }
 
 # ================= API Key and Usage Plan =================
