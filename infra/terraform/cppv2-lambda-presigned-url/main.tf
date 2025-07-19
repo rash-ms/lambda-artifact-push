@@ -175,6 +175,9 @@ resource "aws_api_gateway_usage_plan" "cppv2_generatePresignedURL_S3_PlanUsage" 
     limit  = 100
     period = "MONTH"
   }
+
+  depends_on = [aws_api_gateway_stage.cppv2_generatePresignedURL_S3_stage]
+
 }
 
 resource "aws_api_gateway_usage_plan_key" "cppv2_generatePresignedURL_S3_plan_key" {
