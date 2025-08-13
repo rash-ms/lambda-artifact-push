@@ -12,7 +12,6 @@ data "aws_kinesis_firehose_delivery_stream" "userplatform_cpp_firehose_delivery_
   name     = "userplatform_cpp_firehose_delivery_stream_us"
 }
 
-
 resource "aws_sqs_queue" "userplatform_cppv2_sqs_dlq_us" {
   provider                  = aws.us
   name                      = "userplatform_cppv2_sqs_dlq_us"
