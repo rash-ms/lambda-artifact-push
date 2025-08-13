@@ -15,10 +15,6 @@ variable "userplatform_s3_bucket" {
   type = map(string)
 }
 
-variable "route_path" {
-  type = map(string)
-}
-
 variable "handler_zip" {
   description = "Reusable shared Lambda handler zip file (with .zip extension)"
   type        = string
