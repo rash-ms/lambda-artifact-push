@@ -65,3 +65,4 @@ resource "aws_lambda_event_source_mapping" "cpp_sqs_lambda_trigger_us" {
   function_response_types            = ["ReportBatchItemFailures"]
   enabled                            = true
 }
+
