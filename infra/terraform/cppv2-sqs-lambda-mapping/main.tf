@@ -50,6 +50,13 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_us" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "cpv2_sqs_lambda_firehose_log_us" {
+  provider          = aws.us # ← add this so it’s in us-east-1
+  name              = "/aws/lambda/${aws_lambda_function.cpv2_sqs_lambda_firehose_us.function_name}"
+  retention_in_days = 14
+}
+
+
 resource "aws_lambda_event_source_mapping" "cpp_sqs_lambda_trigger_us" {
   provider                           = aws.us
   event_source_arn                   = aws_sqs_queue.userplatform_cppv2_sqs_us.arn
@@ -58,11 +65,7 @@ resource "aws_lambda_event_source_mapping" "cpp_sqs_lambda_trigger_us" {
   maximum_batching_window_in_seconds = 5
   function_response_types            = ["ReportBatchItemFailures"]
   enabled                            = true
-}
 
-resource "aws_cloudwatch_log_group" "cpv2_sqs_lambda_firehose_log_us" {
-  provider          = aws.us # ← add this so it’s in us-east-1
-  name              = "/aws/lambda/${aws_lambda_function.cpv2_sqs_lambda_firehose_us.function_name}"
-  retention_in_days = 14
+  depends_on = [aws_cloudwatch_log_group.cpv2_sqs_lambda_firehose_log_us]
 }
 
