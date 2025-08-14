@@ -1,8 +1,3 @@
-# data "aws_sqs_queue" "userplatform_cppv2_sqs_us" {
-#   provider = aws.us
-#   name     = "userplatform_cppv2_sqs_us"
-# }
-
 data "aws_iam_role" "cpp_integration_apigw_evtbridge_firehose_logs_role" {
   name = "cpp_integration_apigw_evtbridge_firehose_logs_role"
 }
@@ -30,7 +25,6 @@ resource "aws_sqs_queue" "userplatform_cppv2_sqs_us" {
     maxReceiveCount     = 5
   })
 }
-
 
 # ================= Lambda Function =================
 resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_us" {
