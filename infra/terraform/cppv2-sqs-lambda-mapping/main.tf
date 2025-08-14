@@ -77,6 +77,11 @@ resource "aws_sqs_queue" "userplatform_cppv2_sqs_us" {
 }
 
 # ================= Lambda Function =================
+
+data "aws_kms_alias" "lambda" {
+  name = "alias/aws/lambda"
+}
+
 resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_us" {
   provider      = aws.us
   function_name = "cppv2_sqs_lambda_firehose_us"
@@ -90,7 +95,7 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_us" {
 
   # FIREHOSE_STREAM_ARN = data.aws_kinesis_firehose_delivery_stream.userplatform_cpp_firehose_delivery_stream_us.arn
 
-  kms_key_arn = "alias/aws/lambda"
+  kms_key_arn = data.aws_kms_alias.lambda.target_key_arn
 
   environment {
     variables = {
