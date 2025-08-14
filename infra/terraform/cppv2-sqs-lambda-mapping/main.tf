@@ -52,11 +52,10 @@ resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
   })
 }
 
-
-resource "aws_iam_role_policy_attachment" "lambda_basic" {
-  role       = data.aws_iam_role.cpp_integration_apigw_evtbridge_firehose_logs_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
+# resource "aws_iam_role_policy_attachment" "lambda_basic" {
+#   role       = data.aws_iam_role.cpp_integration_apigw_evtbridge_firehose_logs_role.name
+#   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+# }
 
 resource "aws_sqs_queue" "userplatform_cppv2_sqs_dlq_us" {
   provider                  = aws.us
