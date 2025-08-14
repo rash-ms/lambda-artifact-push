@@ -7,6 +7,11 @@ data "aws_kinesis_firehose_delivery_stream" "userplatform_cpp_firehose_delivery_
   name     = "userplatform_cpp_firehose_delivery_stream_us"
 }
 
+resource "aws_iam_role_policy_attachment" "lambda_basic" {
+  role       = data.aws_iam_role.cpp_integration_apigw_evtbridge_firehose_logs_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
 resource "aws_sqs_queue" "userplatform_cppv2_sqs_dlq_us" {
   provider                  = aws.us
   name                      = "userplatform_cppv2_sqs_dlq_us"
@@ -50,11 +55,11 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_us" {
   }
 }
 
-# resource "aws_cloudwatch_log_group" "cpv2_sqs_lambda_firehose_log_us" {
-#   provider          = aws.us # ← add this so it’s in us-east-1
-#   name              = "/aws/lambda/${aws_lambda_function.cpv2_sqs_lambda_firehose_us.function_name}"
-#   retention_in_days = 14
-# }
+resource "aws_cloudwatch_log_group" "cpv2_sqs_lambda_firehose_log_us" {
+  provider          = aws.us # ← add this so it’s in us-east-1
+  name              = "/aws/lambda/${aws_lambda_function.cpv2_sqs_lambda_firehose_us.function_name}"
+  retention_in_days = 14
+}
 
 
 resource "aws_lambda_event_source_mapping" "cpp_sqs_lambda_trigger_us" {
@@ -66,6 +71,6 @@ resource "aws_lambda_event_source_mapping" "cpp_sqs_lambda_trigger_us" {
   function_response_types            = ["ReportBatchItemFailures"]
   enabled                            = true
 
-  # depends_on = [aws_cloudwatch_log_group.cpv2_sqs_lambda_firehose_log_us]
+  depends_on = [aws_cloudwatch_log_group.cpv2_sqs_lambda_firehose_log_us]
 }
 
