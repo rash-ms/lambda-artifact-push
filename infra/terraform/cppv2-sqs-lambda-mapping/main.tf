@@ -90,6 +90,8 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_us" {
 
   # FIREHOSE_STREAM_ARN = data.aws_kinesis_firehose_delivery_stream.userplatform_cpp_firehose_delivery_stream_us.arn
 
+  kms_key_arn = "alias/aws/lambda"
+
   environment {
     variables = {
       FIREHOSE_STREAM   = data.aws_kinesis_firehose_delivery_stream.userplatform_cpp_firehose_delivery_stream_us.name
