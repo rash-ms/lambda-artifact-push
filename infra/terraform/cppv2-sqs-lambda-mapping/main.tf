@@ -7,6 +7,52 @@ data "aws_kinesis_firehose_delivery_stream" "userplatform_cpp_firehose_delivery_
   name     = "userplatform_cpp_firehose_delivery_stream_us"
 }
 
+resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
+  provider = aws.us
+  name     = "cppv2_lambda_sqs_permissions"
+  role     = data.aws_iam_role.cpp_integration_apigw_evtbridge_firehose_logs_role.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:ChangeMessageVisibility",
+          "sqs:GetQueueUrl",
+          "sqs:ListDeadLetterSourceQueues",
+          "sqs:SendMessageBatch",
+          "sqs:PurgeQueue",
+          "sqs:SendMessage",
+          "sqs:CreateQueue",
+          "sqs:ListQueueTags",
+          "sqs:ChangeMessageVisibilityBatch",
+          "sqs:SetQueueAttributes"
+        ]
+        Resource = [
+          aws_sqs_queue.userplatform_cppv2_sqs_us.arn,
+          aws_sqs_queue.userplatform_cppv2_sqs_dlq_us.arn
+        ]
+      },
+      {
+        "Effect" : "Allow",
+        Action : [
+          "sqs:GetQueueUrl",
+          "sqs:ListQueues"
+        ],
+        Resource = [
+          aws_sqs_queue.userplatform_cppv2_sqs_us.arn,
+          aws_sqs_queue.userplatform_cppv2_sqs_dlq_us.arn
+        ]
+      }
+    ]
+  })
+}
+
+
 resource "aws_iam_role_policy_attachment" "lambda_basic" {
   role       = data.aws_iam_role.cpp_integration_apigw_evtbridge_firehose_logs_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
