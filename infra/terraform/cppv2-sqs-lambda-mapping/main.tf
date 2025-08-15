@@ -52,11 +52,6 @@ resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
   })
 }
 
-# resource "aws_iam_role_policy_attachment" "lambda_basic" {
-#   role       = data.aws_iam_role.cpp_integration_apigw_evtbridge_firehose_logs_role.name
-#   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-# }
-
 resource "aws_sqs_queue" "userplatform_cppv2_sqs_dlq_us" {
   provider                  = aws.us
   name                      = "userplatform_cppv2_sqs_dlq_us"
@@ -67,9 +62,9 @@ resource "aws_sqs_queue" "userplatform_cppv2_sqs_us" {
   provider = aws.us
   name     = "userplatform_cppv2_sqs_us"
 
-  visibility_timeout_seconds = 180    # > lambda timeout
+  visibility_timeout_seconds = 720    #  6x >= lambda timeout
   message_retention_seconds  = 604800 # 7 days
-  receive_wait_time_seconds  = 10
+  receive_wait_time_seconds  = 10     # polling period
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.userplatform_cppv2_sqs_dlq_us.arn
     maxReceiveCount     = 5
@@ -78,7 +73,7 @@ resource "aws_sqs_queue" "userplatform_cppv2_sqs_us" {
 
 # ================= Lambda Function =================
 
-data "aws_kms_alias" "lambda" {
+data "aws_kms_alias" "cppv2_kms_key_lambda" {
   name = "alias/aws/lambda"
 }
 
@@ -93,9 +88,7 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_us" {
   memory_size   = 1024
   role          = data.aws_iam_role.cpp_integration_apigw_evtbridge_firehose_logs_role.arn
 
-  # FIREHOSE_STREAM_ARN = data.aws_kinesis_firehose_delivery_stream.userplatform_cpp_firehose_delivery_stream_us.arn
-
-  kms_key_arn = data.aws_kms_alias.lambda.target_key_arn
+  kms_key_arn = data.aws_kms_alias.cppv2_kms_key_lambda.target_key_arn
 
   environment {
     variables = {
@@ -118,7 +111,7 @@ resource "aws_lambda_event_source_mapping" "cpp_sqs_lambda_trigger_us" {
   provider                           = aws.us
   event_source_arn                   = aws_sqs_queue.userplatform_cppv2_sqs_us.arn
   function_name                      = aws_lambda_function.cpv2_sqs_lambda_firehose_us.arn
-  batch_size                         = 50
+  batch_size                         = 10
   maximum_batching_window_in_seconds = 5
   function_response_types            = ["ReportBatchItemFailures"]
   enabled                            = true
