@@ -7,6 +7,10 @@ data "aws_kinesis_firehose_delivery_stream" "userplatform_cpp_firehose_delivery_
   name     = "userplatform_cpp_firehose_delivery_stream_us"
 }
 
+data "aws_kms_alias" "cppv2_kms_key_lambda" {
+  name = "alias/aws/lambda"
+}
+
 resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
   provider = aws.us
   name     = "cppv2_lambda_sqs_permissions"
@@ -47,6 +51,19 @@ resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
           aws_sqs_queue.userplatform_cppv2_sqs_us.arn,
           aws_sqs_queue.userplatform_cppv2_sqs_dlq_us.arn
         ]
+      },
+      {
+        "Effect" : "Allow",
+        Action : [
+          "kms:Decrypt",
+          "kms:DescribeKey",
+          "kms:Encrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey",
+          "kms:GenerateDataKeyWithoutPlaintext"
+        ],
+        Resource = data.aws_kms_alias.cppv2_kms_key_lambda.target_key_arn
       }
     ]
   })
@@ -74,10 +91,6 @@ resource "aws_sqs_queue" "userplatform_cppv2_sqs_us" {
 }
 
 # ================= Lambda Function =================
-
-data "aws_kms_alias" "cppv2_kms_key_lambda" {
-  name = "alias/aws/lambda"
-}
 
 resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_us" {
   provider      = aws.us
