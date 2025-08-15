@@ -82,7 +82,6 @@ resource "aws_sqs_queue" "userplatform_cppv2_sqs_us" {
   visibility_timeout_seconds = 1080   #  6x >= lambda timeout
   message_retention_seconds  = 604800 # 7 days
   receive_wait_time_seconds  = 10     # polling period
-  max_message_size           = 921600 # ~900 KiB (900 * 1024)
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.userplatform_cppv2_sqs_dlq_us.arn
