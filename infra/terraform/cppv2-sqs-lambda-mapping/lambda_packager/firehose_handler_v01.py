@@ -30,22 +30,32 @@ def encode_line(obj: dict) -> bytes:
     return json.dumps(obj, separators=(",", ":")).encode("utf-8")
 
 
-def quarantine(msg_id: str, body: str, reason: str):
+def archive_error_s3(msg_id: str, body: str, reason: str) -> bool:
+    """Write to S3; return True if dump to s3 or False if error."""
     if not s3:
-        return
+        return True
 
-    event_wrapper = {"reason": reason, "raw": body}
+    try:
+        key = f"{QUARANTINE_PREFIX}{int(time.time())}-{msg_id}.json"
+        event_wrapper = {"reason": reason, "raw": body}
 
-    s3.put_object(
-        Bucket=QUARANTINE_BUCKET,
-        Key=f"{QUARANTINE_PREFIX}{msg_id}.json",
-        Body=json.dumps(event_wrapper, separators=(",", ":")).encode("utf-8"),
-        ContentType="application/json"
-    )
-
+        s3.put_object(
+            Bucket=QUARANTINE_BUCKET,
+            Key=key,
+            Body=json.dumps(event_wrapper, separators=(",", ":")).encode("utf-8"),
+            ContentType="application/json",
+        )
+        return True
+    except Exception:
+        return False
 
 def send_to_firehose(event, _ctx):
     failures: List[Dict[str, str]] = []
+
+    # mark record for success or retry/DLQ
+    def archive_or_retry(msg_id: str, body: str, reason: str):
+        if not archive_error_s3(msg_id, body, reason):
+            failures.append({"itemIdentifier": msg_id})
 
     for rec in event.get("Records", []):
         msg_id = rec["messageId"]
@@ -54,7 +64,7 @@ def send_to_firehose(event, _ctx):
         ok, parsed = strict_parse(body)
 
         if not ok:
-            quarantine(msg_id, body, reason="invalid_json")
+            archive_or_retry(msg_id, body, reason="invalid_json")
             continue
 
         payload = parsed if isinstance(parsed, dict) else {"payload": parsed}
@@ -63,7 +73,7 @@ def send_to_firehose(event, _ctx):
         data = encode_line(payload)
 
         if len(data) > MAX_FIREHOSE_RECORD_BYTES:
-            quarantine(msg_id, body, reason="record_exceeds_1mb")
+            archive_or_retry(msg_id, body, reason="record_exceeds_1mb")
             continue
 
         # --------- explicit Firehose send with retries ---------
@@ -90,7 +100,7 @@ def send_to_firehose(event, _ctx):
         # --------------------------------------------------------
 
         if not success:
-            quarantine(msg_id, body, reason="firehose_put_failed")
+            archive_or_retry(msg_id, body, reason="firehose_put_failed")
             continue
 
     return {"batchItemFailures": failures}

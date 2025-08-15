@@ -62,9 +62,11 @@ resource "aws_sqs_queue" "userplatform_cppv2_sqs_us" {
   provider = aws.us
   name     = "userplatform_cppv2_sqs_us"
 
-  visibility_timeout_seconds = 720    #  6x >= lambda timeout
+  visibility_timeout_seconds = 1080   #  6x >= lambda timeout
   message_retention_seconds  = 604800 # 7 days
   receive_wait_time_seconds  = 10     # polling period
+  max_message_size           = 921600 # ~900 KiB (900 * 1024)
+
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.userplatform_cppv2_sqs_dlq_us.arn
     maxReceiveCount     = 5
@@ -84,7 +86,7 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_us" {
   s3_key        = "${var.s3_key}/${var.handler_zip}.zip"
   handler       = "${var.handler_zip}.send_to_firehose"
   runtime       = "python3.9"
-  timeout       = 120
+  timeout       = 180
   memory_size   = 1024
   role          = data.aws_iam_role.cpp_integration_apigw_evtbridge_firehose_logs_role.arn
 
