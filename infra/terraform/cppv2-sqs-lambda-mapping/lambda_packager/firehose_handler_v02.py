@@ -8,15 +8,17 @@ from botocore.exceptions import BotoCoreError, ClientError
 
 REGION = os.environ["REGION"]
 FIREHOSE_STREAM = os.environ["FIREHOSE_STREAM"]
-QUARANTINE_BUCKET = os.environ.get("QUARANTINE_BUCKET")
-QUARANTINE_PREFIX = os.environ.get("QUARANTINE_PREFIX", "quarantine/")
+EVENTS_BUCKET = os.environ.get("EVENTS_BUCKET")
+ERROR_EVENTS_PREFIX = os.environ.get("ERROR_EVENTS_PREFIX", "raw/cppv2-raw-errors/")
+
 MAX_FIREHOSE_RECORD_BYTES = 1000 * 1024  # ~1 MB
 RETRYABLE_ERR_CODES = {"ThrottlingException", "ServiceUnavailableException", "InternalFailure"}
 MAX_LOCAL_RETRIES = 3
 BACKOFF_BASE_SECONDS = 0.25
 
+
 fh = boto3.client("firehose", region_name=REGION)
-s3 = boto3.client("s3", region_name=REGION) if QUARANTINE_BUCKET else None
+s3 = boto3.client("s3", region_name=REGION) if EVENTS_BUCKET else None
 
 
 def strict_parse(raw: str):
@@ -36,11 +38,15 @@ def archive_error_s3(msg_id: str, body: str, reason: str) -> bool:
         return True
 
     try:
-        key = f"{QUARANTINE_PREFIX}{int(time.time())}-{msg_id}.json"
+        if reason in ("firehose_put_failed", "firehose_exceeds_1mb"):
+            key = f"{ERROR_EVENTS_PREFIX}/firehose_put_failed/{msg_id}.json"
+        else:
+            key = f"{ERROR_EVENTS_PREFIX}/{reason}/{msg_id}.json"
+
         event_wrapper = {"reason": reason, "raw": body}
 
         s3.put_object(
-            Bucket=QUARANTINE_BUCKET,
+            Bucket=ERROR_EVENTS_PREFIX,
             Key=key,
             Body=json.dumps(event_wrapper, separators=(",", ":")).encode("utf-8"),
             ContentType="application/json",
@@ -73,7 +79,7 @@ def send_to_firehose(event, _ctx):
         data = encode_line(payload)
 
         if len(data) > MAX_FIREHOSE_RECORD_BYTES:
-            archive_or_retry(msg_id, body, reason="record_exceeds_1mb")
+            archive_or_retry(msg_id, body, reason="firehose_exceeds_1mb")
             continue
 
         # --------- explicit Firehose send with retries ---------
