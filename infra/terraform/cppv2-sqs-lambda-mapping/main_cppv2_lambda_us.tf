@@ -13,7 +13,6 @@ data "aws_kms_alias" "cppv2_kms_key_lambda_us" {
 }
 
 resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
-  provider = aws.us
   name     = "cppv2_lambda_sqs_permissions"
   role     = data.aws_iam_role.cpp_integration_apigw_evtbridge_firehose_logs_role.name
 
@@ -39,7 +38,11 @@ resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
         ]
         Resource = [
           aws_sqs_queue.userplatform_cppv2_sqs_us.arn,
-          aws_sqs_queue.userplatform_cppv2_sqs_dlq_us.arn
+          aws_sqs_queue.userplatform_cppv2_sqs_dlq_us.arn,
+          aws_sqs_queue.userplatform_cppv2_sqs_eu.arn,
+          aws_sqs_queue.userplatform_cppv2_sqs_dlq_eu.arn,
+          aws_sqs_queue.userplatform_cppv2_sqs_ap.arn,
+          aws_sqs_queue.userplatform_cppv2_sqs_dlq_ap.arn
         ]
       },
       {
@@ -50,7 +53,11 @@ resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
         ],
         Resource = [
           aws_sqs_queue.userplatform_cppv2_sqs_us.arn,
-          aws_sqs_queue.userplatform_cppv2_sqs_dlq_us.arn
+          aws_sqs_queue.userplatform_cppv2_sqs_dlq_us.arn,
+          aws_sqs_queue.userplatform_cppv2_sqs_eu.arn,
+          aws_sqs_queue.userplatform_cppv2_sqs_dlq_eu.arn,
+          aws_sqs_queue.userplatform_cppv2_sqs_ap.arn,
+          aws_sqs_queue.userplatform_cppv2_sqs_dlq_ap.arn
         ]
       },
       {
@@ -64,7 +71,11 @@ resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
           "kms:DescribeKey",
           "kms:GenerateDataKeyWithoutPlaintext"
         ],
-        Resource = data.aws_kms_alias.cppv2_kms_key_lambda_us.target_key_arn
+        Resource = [
+          data.aws_kms_alias.cppv2_kms_key_lambda_us.target_key_arn,
+          data.aws_kms_alias.cppv2_kms_key_lambda_eu.target_key_arn,
+          data.aws_kms_alias.cppv2_kms_key_lambda_ap.target_key_arn
+          ]
       }
     ]
   })
