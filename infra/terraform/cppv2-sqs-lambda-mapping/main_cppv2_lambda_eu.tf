@@ -3,10 +3,10 @@ data "aws_kinesis_firehose_delivery_stream" "userplatform_cpp_firehose_delivery_
   name     = "userplatform_cpp_firehose_delivery_stream_eu"
 }
 
-data "aws_kms_alias" "cppv2_kms_key_lambda_eu" {
-  provider = aws.eu
-  name     = "alias/aws/lambda"
-}
+# data "aws_kms_alias" "cppv2_kms_key_lambda_eu" {
+#   provider = aws.eu
+#   name     = "alias/aws/lambda"
+# }
 
 
 resource "aws_sqs_queue" "userplatform_cppv2_sqs_dlq_eu" {
@@ -43,7 +43,7 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_eu" {
   role          = data.aws_iam_role.cpp_integration_apigw_evtbridge_firehose_logs_role.arn
 
   # kms_key_arn = null
-  kms_key_arn = data.aws_kms_alias.cppv2_kms_key_lambda_eu.target_key_arn
+  # kms_key_arn = data.aws_kms_alias.cppv2_kms_key_lambda_eu.target_key_arn
 
   environment {
     variables = {
