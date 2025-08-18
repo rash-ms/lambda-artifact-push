@@ -1,7 +1,3 @@
-data "aws_iam_role" "cpp_integration_apigw_evtbridge_firehose_logs_role" {
-  name = "cpp_integration_apigw_evtbridge_firehose_logs_role"
-}
-
 data "aws_kinesis_firehose_delivery_stream" "userplatform_cpp_firehose_delivery_stream_eu" {
   provider = aws.eu
   name     = "userplatform_cpp_firehose_delivery_stream_eu"
