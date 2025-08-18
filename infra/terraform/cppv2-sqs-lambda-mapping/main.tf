@@ -132,4 +132,3 @@ resource "aws_lambda_event_source_mapping" "cpp_sqs_lambda_trigger_us" {
 
   depends_on = [aws_cloudwatch_log_group.cpv2_sqs_lambda_firehose_log_us]
 }
-
