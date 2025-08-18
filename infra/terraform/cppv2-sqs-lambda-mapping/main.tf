@@ -52,19 +52,19 @@ resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
           aws_sqs_queue.userplatform_cppv2_sqs_dlq_us.arn
         ]
       },
-      # {
-      #   "Effect" : "Allow",
-      #   Action : [
-      #     "kms:Decrypt",
-      #     "kms:DescribeKey",
-      #     "kms:Encrypt",
-      #     "kms:ReEncrypt*",
-      #     "kms:GenerateDataKey*",
-      #     "kms:DescribeKey",
-      #     "kms:GenerateDataKeyWithoutPlaintext"
-      #   ],
-      #   Resource = data.aws_kms_alias.cppv2_kms_key_lambda.target_key_arn
-      # }
+      {
+        "Effect" : "Allow",
+        Action : [
+          "kms:Decrypt",
+          "kms:DescribeKey",
+          "kms:Encrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey",
+          "kms:GenerateDataKeyWithoutPlaintext"
+        ],
+        Resource = data.aws_kms_alias.cppv2_kms_key_lambda.target_key_arn
+      }
     ]
   })
 }
