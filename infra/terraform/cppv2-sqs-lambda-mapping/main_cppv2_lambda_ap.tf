@@ -57,8 +57,9 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_ap" {
   function_name = "cpv2_sqs_lambda_firehose_ap"
   # s3_bucket     = var.lambda_s3_bucket
   # s3_key        = "${var.s3_key}/${var.handler_zip}.zip"
-  s3_bucket = aws_s3_object_copy.zip_ap.bucket
-  s3_key    = aws_s3_object_copy.zip_ap.key
+  s3_bucket        = aws_s3_object_copy.zip_ap.bucket
+  s3_key           = aws_s3_object_copy.zip_ap.key
+  source_code_hash = aws_s3_object_copy.zip_ap.etag
 
   handler     = "${var.handler_zip}.send_to_firehose"
   runtime     = "python3.9"
