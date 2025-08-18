@@ -13,8 +13,8 @@ data "aws_kms_alias" "cppv2_kms_key_lambda_us" {
 }
 
 resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
-  name     = "cppv2_lambda_sqs_permissions"
-  role     = data.aws_iam_role.cpp_integration_apigw_evtbridge_firehose_logs_role.name
+  name = "cppv2_lambda_sqs_permissions"
+  role = data.aws_iam_role.cpp_integration_apigw_evtbridge_firehose_logs_role.name
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -75,7 +75,7 @@ resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
           data.aws_kms_alias.cppv2_kms_key_lambda_us.target_key_arn,
           data.aws_kms_alias.cppv2_kms_key_lambda_eu.target_key_arn,
           data.aws_kms_alias.cppv2_kms_key_lambda_ap.target_key_arn
-          ]
+        ]
       }
     ]
   })
