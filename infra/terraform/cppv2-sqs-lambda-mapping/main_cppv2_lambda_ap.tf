@@ -1,3 +1,25 @@
+data "aws_s3_object" "src_zip_ap" {
+  provider = aws.us
+  bucket   = var.lambda_s3_bucket
+  key      = "${var.s3_key}/${var.handler_zip}.zip"
+}
+
+resource "aws_s3_object_copy" "zip_ap" {
+  provider = aws.ap
+  bucket   = "cn-infra-lambda-artifacts-stg-ap"
+  key      = "${var.s3_key}/${var.handler_zip}.zip"
+
+  source = "arn:aws:s3:::${var.lambda_s3_bucket}/${var.s3_key}/${var.handler_zip}.zip"
+
+  # Recopy when the source changes
+  lifecycle {
+    replace_triggered_by = [data.aws_s3_object.src_zip_ap.etag]
+  }
+
+  depends_on = [data.aws_s3_object.src_zip_ap]
+}
+
+
 data "aws_kinesis_firehose_delivery_stream" "userplatform_cpp_firehose_delivery_stream_ap" {
   provider = aws.ap
   name     = "userplatform_cpp_firehose_delivery_stream_ap"
@@ -33,13 +55,16 @@ resource "aws_sqs_queue" "userplatform_cppv2_sqs_ap" {
 resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_ap" {
   provider      = aws.ap
   function_name = "cpv2_sqs_lambda_firehose_ap"
-  s3_bucket     = var.lambda_s3_bucket
-  s3_key        = "${var.s3_key}/${var.handler_zip}.zip"
-  handler       = "${var.handler_zip}.send_to_firehose"
-  runtime       = "python3.9"
-  timeout       = 180
-  memory_size   = 1024
-  role          = data.aws_iam_role.cpp_integration_apigw_evtbridge_firehose_logs_role.arn
+  # s3_bucket     = var.lambda_s3_bucket
+  # s3_key        = "${var.s3_key}/${var.handler_zip}.zip"
+  s3_bucket = aws_s3_object_copy.zip_ap.bucket
+  s3_key    = aws_s3_object_copy.zip_ap.key
+
+  handler     = "${var.handler_zip}.send_to_firehose"
+  runtime     = "python3.9"
+  timeout     = 180
+  memory_size = 1024
+  role        = data.aws_iam_role.cpp_integration_apigw_evtbridge_firehose_logs_role.arn
 
   # kms_key_arn = null
   # kms_key_arn = data.aws_kms_alias.cppv2_kms_key_lambda_ap.target_key_arn
