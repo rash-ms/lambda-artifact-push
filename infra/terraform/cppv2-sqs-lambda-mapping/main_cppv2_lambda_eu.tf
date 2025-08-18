@@ -1,5 +1,5 @@
 # 1) Look up the source object (US)
-data "aws_s3_object" "src_zip_eu" {
+data "aws_s3_bucket_object" "src_zip_eu" {
   provider = aws.us
   bucket   = var.lambda_s3_bucket
   key      = "${var.s3_key}/${var.handler_zip}.zip"
@@ -14,10 +14,10 @@ resource "aws_s3_object_copy" "zip_eu" {
 
   # Recopy when the source changes
   lifecycle {
-    replace_triggered_by = [data.aws_s3_object.src_zip_eu.etag]
+    replace_triggered_by = [data.aws_s3_bucket_object.src_zip_eu.etag]
   }
 
-  depends_on = [data.aws_s3_object.src_zip_eu]
+  depends_on = [data.aws_s3_bucket_object.src_zip_eu]
 }
 
 data "aws_kinesis_firehose_delivery_stream" "userplatform_cpp_firehose_delivery_stream_eu" {

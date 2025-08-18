@@ -1,4 +1,4 @@
-data "aws_s3_object" "src_zip_ap" {
+data "aws_s3_bucket_object" "src_zip_ap" {
   provider = aws.us
   bucket   = var.lambda_s3_bucket
   key      = "${var.s3_key}/${var.handler_zip}.zip"
@@ -13,10 +13,10 @@ resource "aws_s3_object_copy" "zip_ap" {
 
   # Recopy when the source changes
   lifecycle {
-    replace_triggered_by = [data.aws_s3_object.src_zip_ap.etag]
+    replace_triggered_by = [data.aws_s3_bucket_object.src_zip_ap.etag]
   }
 
-  depends_on = [data.aws_s3_object.src_zip_ap]
+  depends_on = [data.aws_s3_bucket_object.src_zip_ap]
 }
 
 
