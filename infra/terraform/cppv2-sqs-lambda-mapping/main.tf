@@ -7,9 +7,10 @@ data "aws_kinesis_firehose_delivery_stream" "userplatform_cpp_firehose_delivery_
   name     = "userplatform_cpp_firehose_delivery_stream_us"
 }
 
-# data "aws_kms_alias" "cppv2_kms_key_lambda" {
-#   name = "alias/aws/lambda"
-# }
+data "aws_kms_alias" "cppv2_kms_key_lambda" {
+  provider = aws.us
+  name     = "alias/aws/lambda"
+}
 
 resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
   provider = aws.us
@@ -52,19 +53,19 @@ resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
           aws_sqs_queue.userplatform_cppv2_sqs_dlq_us.arn
         ]
       },
-      # {
-      #   "Effect" : "Allow",
-      #   Action : [
-      #     "kms:Decrypt",
-      #     "kms:DescribeKey",
-      #     "kms:Encrypt",
-      #     "kms:ReEncrypt*",
-      #     "kms:GenerateDataKey*",
-      #     "kms:DescribeKey",
-      #     "kms:GenerateDataKeyWithoutPlaintext"
-      #   ],
-      #   Resource = data.aws_kms_alias.cppv2_kms_key_lambda.target_key_arn
-      # }
+      {
+        "Effect" : "Allow",
+        Action : [
+          "kms:Decrypt",
+          "kms:DescribeKey",
+          "kms:Encrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey",
+          "kms:GenerateDataKeyWithoutPlaintext"
+        ],
+        Resource = data.aws_kms_alias.cppv2_kms_key_lambda.target_key_arn
+      }
     ]
   })
 }
@@ -102,8 +103,8 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_us" {
   memory_size   = 1024
   role          = data.aws_iam_role.cpp_integration_apigw_evtbridge_firehose_logs_role.arn
 
-  kms_key_arn = null
-  # kms_key_arn = data.aws_kms_alias.cppv2_kms_key_lambda.target_key_arn
+  # kms_key_arn = null
+  kms_key_arn = data.aws_kms_alias.cppv2_kms_key_lambda.target_key_arn
 
   environment {
     variables = {
