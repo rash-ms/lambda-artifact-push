@@ -4,47 +4,55 @@ data "aws_s3_bucket_object" "src_zip_ap" {
   key      = "${var.s3_key}/${var.handler_zip}.zip"
 }
 
-# locals {
-#   # Use try() to handle cases where the object might not exist yet
-#   source_etag = try(data.aws_s3_bucket_object.src_zip_ap.etag, "")
+# resource "null_resource" "zip_change_detector_ap" {
+#   triggers = {
+#     # Multiple triggers to detect changes
+#     source_etag = try(data.aws_s3_bucket_object.src_zip_ap.etag, timestamp())
+#     source_key  = "${var.s3_key}/${var.handler_zip}.zip"
+#     handler     = var.handler_zip
+#   }
+#
+#   lifecycle {
+#     create_before_destroy = true
+#   }
+# }
+#
+# resource "aws_s3_object_copy" "zip_ap" {
+#   provider = aws.ap
+#   bucket   = "cn-infra-lambda-artifacts-stg-ap"
+#   key      = "${var.s3_key}/${var.handler_zip}.zip"
+#
+#   source = "arn:aws:s3:::${var.lambda_s3_bucket}/${var.s3_key}/${var.handler_zip}.zip"
+#
+#   # Recopy when the source changes
+#   lifecycle {
+#     replace_triggered_by = [null_resource.zip_change_detector_ap]
+#   }
+#
+#   depends_on = [data.aws_s3_bucket_object.src_zip_ap]
 # }
 
-resource "null_resource" "zip_change_detector_ap" {
+
+resource "null_resource" "s3_copy_ap" {
   triggers = {
-    # Multiple triggers to detect changes
     source_etag = try(data.aws_s3_bucket_object.src_zip_ap.etag, timestamp())
     source_key  = "${var.s3_key}/${var.handler_zip}.zip"
-    handler     = var.handler_zip
   }
 
-  lifecycle {
-    create_before_destroy = true
-  }
-}
+  provisioner "local-exec" {
+    command = <<-EOT
+      aws s3 cp \
+        s3://cn-infra-lambda-artifacts/${var.s3_key}/${var.handler_zip}.zip \
+        s3://cn-infra-lambda-artifacts-stg-ap/${var.s3_key}/${var.handler_zip}.zip
+    EOT
 
-resource "aws_s3_object_copy" "zip_ap" {
-  provider = aws.ap
-  bucket   = "cn-infra-lambda-artifacts-stg-ap"
-  key      = "${var.s3_key}/${var.handler_zip}.zip"
-
-  source = "arn:aws:s3:::${var.lambda_s3_bucket}/${var.s3_key}/${var.handler_zip}.zip"
-
-  # Recopy when the source changes
-  # lifecycle {
-  #   replace_triggered_by = [data.aws_s3_bucket_object.src_zip_ap.etag]
-  # }
-
-  # lifecycle {
-  #   replace_triggered_by = [local.source_etag]
-  # }
-
-  lifecycle {
-    replace_triggered_by = [null_resource.zip_change_detector_ap]
+    environment = {
+      AWS_DEFAULT_REGION = "ap-southeast-1"
+    }
   }
 
   depends_on = [data.aws_s3_bucket_object.src_zip_ap]
 }
-
 
 data "aws_kinesis_firehose_delivery_stream" "userplatform_cpp_firehose_delivery_stream_ap" {
   provider = aws.ap
