@@ -1,23 +1,24 @@
 # # 1) Look up the source object (US)
 data "aws_s3_bucket_object" "src_zip_eu" {
-  bucket = var.lambda_s3_bucket
-  key    = "${var.s3_key}/${var.handler_zip}.zip"
+  provider = aws.us
+  bucket   = var.lambda_s3_bucket
+  key      = "${var.s3_key}/${var.handler_zip}.zip"
 }
 
-# provider = aws.us
 
-# resource "null_resource" "zip_change_detector_eu" {
-#   triggers = {
-#     # Multiple triggers to detect changes
-#     source_etag = try(data.aws_s3_bucket_object.src_zip_eu.etag, timestamp())
-#     source_key  = "${var.s3_key}/${var.handler_zip}.zip"
-#     handler     = var.handler_zip
-#   }
-#
-#   lifecycle {
-#     create_before_destroy = true
-#   }
-# }
+resource "null_resource" "zip_change_detector_eu" {
+  triggers = {
+    # Multiple triggers to detect changes
+    source_etag = try(data.aws_s3_bucket_object.src_zip_eu.etag)
+    # source_etag = try(data.aws_s3_bucket_object.src_zip_eu.etag, timestamp())
+    source_key = "${var.s3_key}/${var.handler_zip}.zip"
+    handler    = var.handler_zip
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
 
 
 resource "aws_s3_object_copy" "zip_eu" {
@@ -30,8 +31,7 @@ resource "aws_s3_object_copy" "zip_eu" {
 
   # Recopy when the source changes
   lifecycle {
-    # replace_triggered_by = [null_resource.zip_change_detector_eu]
-    replace_triggered_by = [data.aws_s3_bucket_object.src_zip_eu.etag]
+    replace_triggered_by = [null_resource.zip_change_detector_eu]
   }
 
   depends_on = [data.aws_s3_bucket_object.src_zip_eu]
