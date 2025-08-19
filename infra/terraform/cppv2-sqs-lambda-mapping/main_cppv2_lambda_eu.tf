@@ -5,6 +5,11 @@ data "aws_s3_bucket_object" "src_zip_eu" {
   key      = "${var.s3_key}/${var.handler_zip}.zip"
 }
 
+locals {
+  # Use try() to handle cases where the object might not exist yet
+  source_etag = try(data.aws_s3_bucket_object.src_zip_eu.etag, "")
+}
+
 resource "aws_s3_object_copy" "zip_eu" {
   provider = aws.eu
   bucket   = "cn-infra-lambda-artifacts-stg-eu"
@@ -13,8 +18,12 @@ resource "aws_s3_object_copy" "zip_eu" {
   source = "arn:aws:s3:::${var.lambda_s3_bucket}/${var.s3_key}/${var.handler_zip}.zip"
 
   # Recopy when the source changes
+  # lifecycle {
+  #   replace_triggered_by = [data.aws_s3_bucket_object.src_zip_eu.etag]
+  # }
+
   lifecycle {
-    replace_triggered_by = [data.aws_s3_bucket_object.src_zip_eu.etag]
+    replace_triggered_by = [local.source_etag]
   }
 
   depends_on = [data.aws_s3_bucket_object.src_zip_eu]
