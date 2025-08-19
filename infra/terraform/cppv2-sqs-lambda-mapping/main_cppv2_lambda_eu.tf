@@ -49,7 +49,7 @@ resource "null_resource" "s3_copy_eu" {
     EOT
 
     environment = {
-      AWS_DEFAULT_REGION = "eu-west-1"
+      AWS_DEFAULT_REGION = "eu-central-1"
     }
   }
 

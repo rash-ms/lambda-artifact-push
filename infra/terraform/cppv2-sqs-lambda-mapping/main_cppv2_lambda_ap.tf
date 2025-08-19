@@ -47,7 +47,7 @@ resource "null_resource" "s3_copy_ap" {
     EOT
 
     environment = {
-      AWS_DEFAULT_REGION = "ap-southeast-1"
+      AWS_DEFAULT_REGION = "ap-northeast-1"
     }
   }
 
