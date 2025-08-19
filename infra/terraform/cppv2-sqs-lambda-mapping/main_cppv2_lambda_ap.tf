@@ -4,18 +4,18 @@ data "aws_s3_bucket_object" "src_zip_ap" {
   key      = "${var.s3_key}/${var.handler_zip}.zip"
 }
 
-resource "null_resource" "zip_change_detector_ap" {
-  triggers = {
-    # Multiple triggers to detect changes
-    source_etag = try(data.aws_s3_bucket_object.src_zip_ap.etag, timestamp())
-    source_key  = "${var.s3_key}/${var.handler_zip}.zip"
-    handler     = var.handler_zip
-  }
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
+# resource "null_resource" "zip_change_detector_ap" {
+#   triggers = {
+#     # Multiple triggers to detect changes
+#     source_etag = try(data.aws_s3_bucket_object.src_zip_ap.etag, timestamp())
+#     source_key  = "${var.s3_key}/${var.handler_zip}.zip"
+#     handler     = var.handler_zip
+#   }
+#
+#   lifecycle {
+#     create_before_destroy = true
+#   }
+# }
 
 resource "aws_s3_object_copy" "zip_ap" {
   provider = aws.ap
@@ -27,7 +27,8 @@ resource "aws_s3_object_copy" "zip_ap" {
 
   # Recopy when the source changes
   lifecycle {
-    replace_triggered_by = [null_resource.zip_change_detector_ap]
+    # replace_triggered_by = [null_resource.zip_change_detector_ap]
+    replace_triggered_by = [data.aws_s3_bucket_object.src_zip_ap.etag]
   }
 
   depends_on = [data.aws_s3_bucket_object.src_zip_ap]
@@ -119,9 +120,9 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_ap" {
   function_name = "cpv2_sqs_lambda_firehose_ap"
   # s3_bucket     = var.lambda_s3_bucket
   # s3_key        = "${var.s3_key}/${var.handler_zip}.zip"
-  s3_bucket = aws_s3_object_copy.zip_ap.bucket
-  s3_key    = aws_s3_object_copy.zip_ap.key
-  # source_code_hash = aws_s3_object_copy.zip_ap.etag
+  s3_bucket        = aws_s3_object_copy.zip_ap.bucket
+  s3_key           = aws_s3_object_copy.zip_ap.key
+  source_code_hash = aws_s3_object_copy.zip_ap.etag
 
   # s3_bucket = "cn-infra-lambda-artifacts-stg-ap"
   # s3_key    = "${var.s3_key}/${var.handler_zip}.zip"

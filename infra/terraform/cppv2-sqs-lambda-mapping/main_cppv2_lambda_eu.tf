@@ -5,18 +5,18 @@ data "aws_s3_bucket_object" "src_zip_eu" {
   key      = "${var.s3_key}/${var.handler_zip}.zip"
 }
 
-resource "null_resource" "zip_change_detector_eu" {
-  triggers = {
-    # Multiple triggers to detect changes
-    source_etag = try(data.aws_s3_bucket_object.src_zip_eu.etag, timestamp())
-    source_key  = "${var.s3_key}/${var.handler_zip}.zip"
-    handler     = var.handler_zip
-  }
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
+# resource "null_resource" "zip_change_detector_eu" {
+#   triggers = {
+#     # Multiple triggers to detect changes
+#     source_etag = try(data.aws_s3_bucket_object.src_zip_eu.etag, timestamp())
+#     source_key  = "${var.s3_key}/${var.handler_zip}.zip"
+#     handler     = var.handler_zip
+#   }
+#
+#   lifecycle {
+#     create_before_destroy = true
+#   }
+# }
 
 
 resource "aws_s3_object_copy" "zip_eu" {
@@ -29,7 +29,8 @@ resource "aws_s3_object_copy" "zip_eu" {
 
   # Recopy when the source changes
   lifecycle {
-    replace_triggered_by = [null_resource.zip_change_detector_eu]
+    # replace_triggered_by = [null_resource.zip_change_detector_eu]
+    replace_triggered_by = [data.aws_s3_bucket_object.src_zip_eu.etag]
   }
 
   depends_on = [data.aws_s3_bucket_object.src_zip_eu]
@@ -124,9 +125,9 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_eu" {
   function_name = "cppv2_sqs_lambda_firehose_eu"
   # s3_bucket     = var.lambda_s3_bucket
   # s3_key        = "${var.s3_key}/${var.handler_zip}.zip"
-  s3_bucket = aws_s3_object_copy.zip_eu.bucket
-  s3_key    = aws_s3_object_copy.zip_eu.key
-  # source_code_hash = aws_s3_object_copy.zip_eu.etag
+  s3_bucket        = aws_s3_object_copy.zip_eu.bucket
+  s3_key           = aws_s3_object_copy.zip_eu.key
+  source_code_hash = aws_s3_object_copy.zip_eu.etag
 
   # s3_bucket = "cn-infra-lambda-artifacts-stg-eu"
   # s3_key    = "${var.s3_key}/${var.handler_zip}.zip"
