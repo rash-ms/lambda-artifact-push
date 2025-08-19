@@ -1,8 +1,8 @@
 # # 1) Look up the source object (US)
 data "aws_s3_bucket_object" "src_zip_eu" {
-  provider = aws.us
-  bucket   = var.lambda_s3_bucket
-  key      = "${var.s3_key}/${var.handler_zip}.zip"
+  # provider = aws.us
+  bucket = var.lambda_s3_bucket
+  key    = "${var.s3_key}/${var.handler_zip}.zip"
 }
 
 # resource "null_resource" "zip_change_detector_eu" {
@@ -57,34 +57,6 @@ resource "aws_s3_object_copy" "zip_eu" {
 #
 #   depends_on = [data.aws_s3_bucket_object.src_zip_eu]
 # }
-
-
-# Terraform 1.4+
-# resource "terraform_data" "s3_copy_eu" {
-#   # Re-run (replace) this resource when any of these values change
-#   triggers_replace = [
-#     data.aws_s3_bucket_object.src_zip_eu.etag, # content change
-#     "${var.s3_key}/${var.handler_zip}.zip",    # path change
-#   ]
-#
-#   # Optional: keep info for readability/debug (doesn't trigger replace)
-#   input = {
-#     src  = "s3://${var.lambda_s3_bucket}/${var.s3_key}/${var.handler_zip}.zip"
-#     dest = "s3://cn-infra-lambda-artifacts-stg-eu/${var.s3_key}/${var.handler_zip}.zip"
-#   }
-#
-#   provisioner "local-exec" {
-#     command     = <<-EOT
-#       aws s3 cp \
-#         s3://${var.lambda_s3_bucket}/${var.s3_key}/${var.handler_zip}.zip \
-#         s3://cn-infra-lambda-artifacts-stg-eu/${var.s3_key}/${var.handler_zip}.zip
-#     EOT
-#     environment = { AWS_DEFAULT_REGION = "eu-central-1" }
-#   }
-#
-#   depends_on = [data.aws_s3_bucket_object.src_zip_eu]
-# }
-
 
 
 data "aws_kinesis_firehose_delivery_stream" "userplatform_cpp_firehose_delivery_stream_eu" {
