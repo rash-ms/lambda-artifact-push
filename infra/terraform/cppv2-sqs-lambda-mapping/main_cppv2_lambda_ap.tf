@@ -89,9 +89,9 @@ resource "aws_sqs_queue" "userplatform_cppv2_sqs_ap" {
 
 # ================= Lambda Function =================
 
-resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_ap" {
+resource "aws_lambda_function" "cppv2_sqs_lambda_firehose_ap" {
   provider         = aws.ap
-  function_name    = "cpv2_sqs_lambda_firehose_ap"
+  function_name    = "cppv2_sqs_lambda_firehose_ap"
   s3_bucket        = aws_s3_object_copy.zip_ap.bucket
   s3_key           = aws_s3_object_copy.zip_ap.key
   source_code_hash = aws_s3_object_copy.zip_ap.etag
@@ -123,7 +123,7 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_ap" {
 
 resource "aws_cloudwatch_log_group" "cpv2_sqs_lambda_firehose_log_ap" {
   provider          = aws.ap
-  name              = "/aws/lambda/${aws_lambda_function.cpv2_sqs_lambda_firehose_ap.function_name}"
+  name              = "/aws/lambda/${aws_lambda_function.cppv2_sqs_lambda_firehose_ap.function_name}"
   retention_in_days = 14
 }
 
@@ -131,7 +131,7 @@ resource "aws_cloudwatch_log_group" "cpv2_sqs_lambda_firehose_log_ap" {
 resource "aws_lambda_event_source_mapping" "cpp_sqs_lambda_trigger_ap" {
   provider                           = aws.ap
   event_source_arn                   = aws_sqs_queue.userplatform_cppv2_sqs_ap.arn
-  function_name                      = aws_lambda_function.cpv2_sqs_lambda_firehose_ap.arn
+  function_name                      = aws_lambda_function.cppv2_sqs_lambda_firehose_ap.arn
   batch_size                         = 10
   maximum_batching_window_in_seconds = 5
   function_response_types            = ["ReportBatchItemFailures"]
