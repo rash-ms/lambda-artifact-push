@@ -4,33 +4,34 @@ data "aws_s3_bucket_object" "src_zip_ap" {
   key      = "${var.s3_key}/${var.handler_zip}.zip"
 }
 
-# resource "null_resource" "zip_change_detector_ap" {
-#   triggers = {
-#     # Multiple triggers to detect changes
-#     source_etag = try(data.aws_s3_bucket_object.src_zip_ap.etag, timestamp())
-#     source_key  = "${var.s3_key}/${var.handler_zip}.zip"
-#     handler     = var.handler_zip
-#   }
-#
-#   lifecycle {
-#     create_before_destroy = true
-#   }
-# }
-#
-# resource "aws_s3_object_copy" "zip_ap" {
-#   provider = aws.ap
-#   bucket   = "cn-infra-lambda-artifacts-stg-ap"
-#   key      = "${var.s3_key}/${var.handler_zip}.zip"
-#
-#   source = "arn:aws:s3:::${var.lambda_s3_bucket}/${var.s3_key}/${var.handler_zip}.zip"
-#
-#   # Recopy when the source changes
-#   lifecycle {
-#     replace_triggered_by = [null_resource.zip_change_detector_ap]
-#   }
-#
-#   depends_on = [data.aws_s3_bucket_object.src_zip_ap]
-# }
+resource "null_resource" "zip_change_detector_ap" {
+  triggers = {
+    # Multiple triggers to detect changes
+    source_etag = try(data.aws_s3_bucket_object.src_zip_ap.etag, timestamp())
+    source_key  = "${var.s3_key}/${var.handler_zip}.zip"
+    handler     = var.handler_zip
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_s3_object_copy" "zip_ap" {
+  provider = aws.ap
+  bucket   = "cn-infra-lambda-artifacts-stg-ap"
+  key      = "${var.s3_key}/${var.handler_zip}.zip"
+
+  source = "${var.lambda_s3_bucket}/${var.s3_key}/${var.handler_zip}.zip"
+  # source = "arn:aws:s3:::${var.lambda_s3_bucket}/${var.s3_key}/${var.handler_zip}.zip"
+
+  # Recopy when the source changes
+  lifecycle {
+    replace_triggered_by = [null_resource.zip_change_detector_ap]
+  }
+
+  depends_on = [data.aws_s3_bucket_object.src_zip_ap]
+}
 
 
 # resource "null_resource" "s3_copy_ap" {
@@ -54,30 +55,30 @@ data "aws_s3_bucket_object" "src_zip_ap" {
 #   depends_on = [data.aws_s3_bucket_object.src_zip_ap]
 # }
 
-resource "terraform_data" "s3_copy_ap" {
-  # Re-run (replace) this resource when any of these values change
-  triggers_replace = [
-    data.aws_s3_bucket_object.src_zip_ap.etag, # content change
-    "${var.s3_key}/${var.handler_zip}.zip",    # path change
-  ]
-
-  # Optional: keep info for readability/debug (doesn't trigger replace)
-  input = {
-    src  = "s3://${var.lambda_s3_bucket}/${var.s3_key}/${var.handler_zip}.zip"
-    dest = "s3://cn-infra-lambda-artifacts-stg-ap/${var.s3_key}/${var.handler_zip}.zip"
-  }
-
-  provisioner "local-exec" {
-    command     = <<-EOT
-      aws s3 cp \
-        s3://${var.lambda_s3_bucket}/${var.s3_key}/${var.handler_zip}.zip \
-        s3://cn-infra-lambda-artifacts-stg-ap/${var.s3_key}/${var.handler_zip}.zip
-    EOT
-    environment = { AWS_DEFAULT_REGION = "ap-northeast-1" }
-  }
-
-  depends_on = [data.aws_s3_bucket_object.src_zip_ap]
-}
+# resource "terraform_data" "s3_copy_ap" {
+#   # Re-run (replace) this resource when any of these values change
+#   triggers_replace = [
+#     data.aws_s3_bucket_object.src_zip_ap.etag, # content change
+#     "${var.s3_key}/${var.handler_zip}.zip",    # path change
+#   ]
+#
+#   # Optional: keep info for readability/debug (doesn't trigger replace)
+#   input = {
+#     src  = "s3://${var.lambda_s3_bucket}/${var.s3_key}/${var.handler_zip}.zip"
+#     dest = "s3://cn-infra-lambda-artifacts-stg-ap/${var.s3_key}/${var.handler_zip}.zip"
+#   }
+#
+#   provisioner "local-exec" {
+#     command     = <<-EOT
+#       aws s3 cp \
+#         s3://${var.lambda_s3_bucket}/${var.s3_key}/${var.handler_zip}.zip \
+#         s3://cn-infra-lambda-artifacts-stg-ap/${var.s3_key}/${var.handler_zip}.zip
+#     EOT
+#     environment = { AWS_DEFAULT_REGION = "ap-northeast-1" }
+#   }
+#
+#   depends_on = [data.aws_s3_bucket_object.src_zip_ap]
+# }
 
 
 
@@ -118,14 +119,14 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_ap" {
   function_name = "cpv2_sqs_lambda_firehose_ap"
   # s3_bucket     = var.lambda_s3_bucket
   # s3_key        = "${var.s3_key}/${var.handler_zip}.zip"
-  # s3_bucket        = aws_s3_object_copy.zip_ap.bucket
-  # s3_key           = aws_s3_object_copy.zip_ap.key
+  s3_bucket = aws_s3_object_copy.zip_ap.bucket
+  s3_key    = aws_s3_object_copy.zip_ap.key
   # source_code_hash = aws_s3_object_copy.zip_ap.etag
-  #
-  s3_bucket = "cn-infra-lambda-artifacts-stg-ap"
-  s3_key    = "${var.s3_key}/${var.handler_zip}.zip"
+
+  # s3_bucket = "cn-infra-lambda-artifacts-stg-ap"
+  # s3_key    = "${var.s3_key}/${var.handler_zip}.zip"
   # source_code_hash = null_resource.s3_copy_ap.triggers.source_etag
-  source_code_hash = terraform_data.s3_copy_ap
+  # source_code_hash = terraform_data.s3_copy_ap
 
   handler     = "${var.handler_zip}.send_to_firehose"
   runtime     = "python3.9"
@@ -144,8 +145,8 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_ap" {
       ERROR_EVENTS_PREFIX = "raw/cpp-v2-raw-errors/"
     }
   }
-  # depends_on = [aws_s3_object_copy.zip_ap]
-  depends_on = [terraform_data.s3_copy_ap]
+  depends_on = [aws_s3_object_copy.zip_ap]
+  # depends_on = [terraform_data.s3_copy_ap]
 }
 
 resource "aws_cloudwatch_log_group" "cpv2_sqs_lambda_firehose_log_ap" {
