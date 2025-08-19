@@ -62,10 +62,10 @@ data "aws_kinesis_firehose_delivery_stream" "userplatform_cpp_firehose_delivery_
   name     = "userplatform_cpp_firehose_delivery_stream_ap"
 }
 
-# data "aws_kms_alias" "cppv2_kms_key_lambda_ap" {
-#   provider = aws.ap
-#   name     = "alias/aws/lambda"
-# }
+data "aws_kms_alias" "cppv2_kms_key_lambda_ap" {
+  provider = aws.ap
+  name     = "alias/aws/lambda"
+}
 
 resource "aws_sqs_queue" "userplatform_cppv2_sqs_dlq_ap" {
   provider                  = aws.ap

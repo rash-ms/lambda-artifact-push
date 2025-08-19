@@ -73,8 +73,8 @@ resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
         ],
         Resource = [
           data.aws_kms_alias.cppv2_kms_key_lambda_us.target_key_arn,
-          # data.aws_kms_alias.cppv2_kms_key_lambda_eu.target_key_arn,
-          # data.aws_kms_alias.cppv2_kms_key_lambda_ap.target_key_arn
+          data.aws_kms_alias.cppv2_kms_key_lambda_eu.target_key_arn,
+          data.aws_kms_alias.cppv2_kms_key_lambda_ap.target_key_arn
         ]
       }
     ]
