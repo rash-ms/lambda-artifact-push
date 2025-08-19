@@ -35,26 +35,54 @@ data "aws_s3_bucket_object" "src_zip_eu" {
 # }
 
 
-resource "null_resource" "s3_copy_eu" {
-  triggers = {
-    source_etag = try(data.aws_s3_bucket_object.src_zip_eu.etag, timestamp())
-    source_key  = "${var.s3_key}/${var.handler_zip}.zip"
+# resource "null_resource" "s3_copy_eu" {
+#   triggers = {
+#     source_etag = try(data.aws_s3_bucket_object.src_zip_eu.etag, timestamp())
+#     source_key  = "${var.s3_key}/${var.handler_zip}.zip"
+#   }
+#
+#   provisioner "local-exec" {
+#     command = <<-EOT
+#       aws s3 cp \
+#         s3://cn-infra-lambda-artifacts/${var.s3_key}/${var.handler_zip}.zip \
+#         s3://cn-infra-lambda-artifacts-stg-eu/${var.s3_key}/${var.handler_zip}.zip
+#     EOT
+#
+#     environment = {
+#       AWS_DEFAULT_REGION = "eu-central-1"
+#     }
+#   }
+#
+#   depends_on = [data.aws_s3_bucket_object.src_zip_eu]
+# }
+
+
+# Terraform 1.4+
+resource "terraform_data" "s3_copy_eu" {
+  # Re-run (replace) this resource when any of these values change
+  triggers_replace = [
+    data.aws_s3_bucket_object.src_zip_eu.etag, # content change
+    "${var.s3_key}/${var.handler_zip}.zip",    # path change
+  ]
+
+  # Optional: keep info for readability/debug (doesn't trigger replace)
+  input = {
+    src  = "s3://${var.lambda_s3_bucket}/${var.s3_key}/${var.handler_zip}.zip"
+    dest = "s3://cn-infra-lambda-artifacts-stg-eu/${var.s3_key}/${var.handler_zip}.zip"
   }
 
   provisioner "local-exec" {
-    command = <<-EOT
+    command     = <<-EOT
       aws s3 cp \
-        s3://cn-infra-lambda-artifacts/${var.s3_key}/${var.handler_zip}.zip \
+        s3://${var.lambda_s3_bucket}/${var.s3_key}/${var.handler_zip}.zip \
         s3://cn-infra-lambda-artifacts-stg-eu/${var.s3_key}/${var.handler_zip}.zip
     EOT
-
-    environment = {
-      AWS_DEFAULT_REGION = "eu-central-1"
-    }
+    environment = { AWS_DEFAULT_REGION = "eu-central-1" }
   }
 
   depends_on = [data.aws_s3_bucket_object.src_zip_eu]
 }
+
 
 
 data "aws_kinesis_firehose_delivery_stream" "userplatform_cpp_firehose_delivery_stream_eu" {
@@ -99,9 +127,10 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_eu" {
   # s3_key           = aws_s3_object_copy.zip_eu.key
   # source_code_hash = aws_s3_object_copy.zip_eu.etag
 
-  s3_bucket        = "cn-infra-lambda-artifacts-stg-eu"
-  s3_key           = "${var.s3_key}/${var.handler_zip}.zip"
-  source_code_hash = null_resource.s3_copy_eu.triggers.source_etag
+  s3_bucket = "cn-infra-lambda-artifacts-stg-eu"
+  s3_key    = "${var.s3_key}/${var.handler_zip}.zip"
+  # source_code_hash = null_resource.s3_copy_eu.triggers.source_etag
+  source_code_hash = terraform_data.s3_copy_eu
 
   handler     = "${var.handler_zip}.send_to_firehose"
   runtime     = "python3.9"
@@ -121,7 +150,7 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_eu" {
     }
   }
   # depends_on = [aws_s3_object_copy.zip_eu]
-  depends_on = [null_resource.s3_copy_eu]
+  depends_on = [terraform_data.s3_copy_eu]
 }
 
 resource "aws_cloudwatch_log_group" "cpv2_sqs_lambda_firehose_log_eu" {
