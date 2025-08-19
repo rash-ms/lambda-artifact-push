@@ -27,7 +27,6 @@ resource "aws_s3_object_copy" "zip_eu" {
   key      = "${var.s3_key}/${var.handler_zip}.zip"
 
   source = "${var.lambda_s3_bucket}/${var.s3_key}/${var.handler_zip}.zip"
-  # source = "arn:aws:s3:::${var.lambda_s3_bucket}/${var.s3_key}/${var.handler_zip}.zip"
 
   # Recopy when the source changes
   lifecycle {
@@ -96,8 +95,6 @@ resource "aws_sqs_queue" "userplatform_cppv2_sqs_eu" {
 resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_eu" {
   provider      = aws.eu
   function_name = "cppv2_sqs_lambda_firehose_eu"
-  # s3_bucket     = var.lambda_s3_bucket
-  # s3_key        = "${var.s3_key}/${var.handler_zip}.zip"
   s3_bucket        = aws_s3_object_copy.zip_eu.bucket
   s3_key           = aws_s3_object_copy.zip_eu.key
   source_code_hash = aws_s3_object_copy.zip_eu.etag
@@ -105,7 +102,6 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_eu" {
   # s3_bucket = "cn-infra-lambda-artifacts-stg-eu"
   # s3_key    = "${var.s3_key}/${var.handler_zip}.zip"
   # source_code_hash = null_resource.s3_copy_eu.triggers.source_etag
-  # source_code_hash = terraform_data.s3_copy_eu
 
   handler     = "${var.handler_zip}.send_to_firehose"
   runtime     = "python3.9"
@@ -125,7 +121,7 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_eu" {
     }
   }
   depends_on = [aws_s3_object_copy.zip_eu]
-  # depends_on = [terraform_data.s3_copy_eu]
+  # depends_on = [null_resource.s3_copy_eu]
 }
 
 resource "aws_cloudwatch_log_group" "cpv2_sqs_lambda_firehose_log_eu" {
