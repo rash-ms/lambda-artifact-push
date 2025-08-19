@@ -120,7 +120,8 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_eu" {
       ERROR_EVENTS_PREFIX = "raw/cpp-v2-raw-errors/"
     }
   }
-  depends_on = [aws_s3_object_copy.zip_eu]
+  # depends_on = [aws_s3_object_copy.zip_eu]
+  depends_on = [null_resource.s3_copy_eu]
 }
 
 resource "aws_cloudwatch_log_group" "cpv2_sqs_lambda_firehose_log_eu" {
