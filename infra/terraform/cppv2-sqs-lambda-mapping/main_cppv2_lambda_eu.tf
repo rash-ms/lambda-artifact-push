@@ -5,10 +5,10 @@ data "aws_s3_bucket_object" "src_zip_eu" {
   key      = "${var.s3_key}/${var.handler_zip}.zip"
 }
 
-locals {
-  # Use try() to handle cases where the object might not exist yet
-  source_etag = try(data.aws_s3_bucket_object.src_zip_eu.etag, "")
-}
+# locals {
+#   # Use try() to handle cases where the object might not exist yet
+#   source_etag = try(data.aws_s3_bucket_object.src_zip_eu.etag, "")
+# }
 
 resource "null_resource" "zip_change_detector_eu" {
   triggers = {
