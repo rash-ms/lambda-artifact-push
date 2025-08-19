@@ -93,8 +93,8 @@ resource "aws_sqs_queue" "userplatform_cppv2_sqs_eu" {
 # ================= Lambda Function =================
 
 resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_eu" {
-  provider      = aws.eu
-  function_name = "cppv2_sqs_lambda_firehose_eu"
+  provider         = aws.eu
+  function_name    = "cppv2_sqs_lambda_firehose_eu"
   s3_bucket        = aws_s3_object_copy.zip_eu.bucket
   s3_key           = aws_s3_object_copy.zip_eu.key
   source_code_hash = aws_s3_object_copy.zip_eu.etag

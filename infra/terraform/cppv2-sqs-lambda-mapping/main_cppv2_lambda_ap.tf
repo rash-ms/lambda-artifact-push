@@ -90,8 +90,8 @@ resource "aws_sqs_queue" "userplatform_cppv2_sqs_ap" {
 # ================= Lambda Function =================
 
 resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_ap" {
-  provider      = aws.ap
-  function_name = "cpv2_sqs_lambda_firehose_ap"
+  provider         = aws.ap
+  function_name    = "cpv2_sqs_lambda_firehose_ap"
   s3_bucket        = aws_s3_object_copy.zip_ap.bucket
   s3_key           = aws_s3_object_copy.zip_ap.key
   source_code_hash = aws_s3_object_copy.zip_ap.etag
