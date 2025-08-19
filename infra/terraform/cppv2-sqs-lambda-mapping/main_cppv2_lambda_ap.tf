@@ -1,8 +1,9 @@
 data "aws_s3_bucket_object" "src_zip_ap" {
-  # provider = aws.us
   bucket = var.lambda_s3_bucket
   key    = "${var.s3_key}/${var.handler_zip}.zip"
 }
+
+# provider = aws.us
 
 # resource "null_resource" "zip_change_detector_ap" {
 #   triggers = {
