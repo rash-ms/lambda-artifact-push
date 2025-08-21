@@ -19,47 +19,47 @@ resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "sqs:ReceiveMessage",
-          "sqs:DeleteMessage",
-          "sqs:GetQueueAttributes",
-          "sqs:ChangeMessageVisibility",
-          "sqs:GetQueueUrl",
-          "sqs:ListDeadLetterSourceQueues",
-          "sqs:SendMessageBatch",
-          "sqs:PurgeQueue",
-          "sqs:SendMessage",
-          "sqs:CreateQueue",
-          "sqs:ListQueueTags",
-          "sqs:ChangeMessageVisibilityBatch",
-          "sqs:SetQueueAttributes"
-        ]
-        Resource = [
-          aws_sqs_queue.userplatform_cppv2_sqs_us.arn,
-          aws_sqs_queue.userplatform_cppv2_sqs_dlq_us.arn,
-          aws_sqs_queue.userplatform_cppv2_sqs_eu.arn,
-          aws_sqs_queue.userplatform_cppv2_sqs_dlq_eu.arn,
-          aws_sqs_queue.userplatform_cppv2_sqs_ap.arn,
-          aws_sqs_queue.userplatform_cppv2_sqs_dlq_ap.arn
-        ]
-      },
-      {
-        "Effect" : "Allow",
-        Action : [
-          "sqs:GetQueueUrl",
-          "sqs:ListQueues"
-        ],
-        Resource = [
-          aws_sqs_queue.userplatform_cppv2_sqs_us.arn,
-          aws_sqs_queue.userplatform_cppv2_sqs_dlq_us.arn,
-          aws_sqs_queue.userplatform_cppv2_sqs_eu.arn,
-          aws_sqs_queue.userplatform_cppv2_sqs_dlq_eu.arn,
-          aws_sqs_queue.userplatform_cppv2_sqs_ap.arn,
-          aws_sqs_queue.userplatform_cppv2_sqs_dlq_ap.arn
-        ]
-      },
+      # {
+      #   Effect = "Allow"
+      #   Action = [
+      #     "sqs:ReceiveMessage",
+      #     "sqs:DeleteMessage",
+      #     "sqs:GetQueueAttributes",
+      #     "sqs:ChangeMessageVisibility",
+      #     "sqs:GetQueueUrl",
+      #     "sqs:ListDeadLetterSourceQueues",
+      #     "sqs:SendMessageBatch",
+      #     "sqs:PurgeQueue",
+      #     "sqs:SendMessage",
+      #     "sqs:CreateQueue",
+      #     "sqs:ListQueueTags",
+      #     "sqs:ChangeMessageVisibilityBatch",
+      #     "sqs:SetQueueAttributes"
+      #   ]
+      #   Resource = [
+      #     aws_sqs_queue.userplatform_cppv2_sqs_us.arn,
+      #     aws_sqs_queue.userplatform_cppv2_sqs_dlq_us.arn,
+      #     aws_sqs_queue.userplatform_cppv2_sqs_eu.arn,
+      #     aws_sqs_queue.userplatform_cppv2_sqs_dlq_eu.arn,
+      #     aws_sqs_queue.userplatform_cppv2_sqs_ap.arn,
+      #     aws_sqs_queue.userplatform_cppv2_sqs_dlq_ap.arn
+      #   ]
+      # },
+      # {
+      #   "Effect" : "Allow",
+      #   Action : [
+      #     "sqs:GetQueueUrl",
+      #     "sqs:ListQueues"
+      #   ],
+      #   Resource = [
+      #     aws_sqs_queue.userplatform_cppv2_sqs_us.arn,
+      #     aws_sqs_queue.userplatform_cppv2_sqs_dlq_us.arn,
+      #     aws_sqs_queue.userplatform_cppv2_sqs_eu.arn,
+      #     aws_sqs_queue.userplatform_cppv2_sqs_dlq_eu.arn,
+      #     aws_sqs_queue.userplatform_cppv2_sqs_ap.arn,
+      #     aws_sqs_queue.userplatform_cppv2_sqs_dlq_ap.arn
+      #   ]
+      # },
       {
         "Effect" : "Allow",
         Action : [
