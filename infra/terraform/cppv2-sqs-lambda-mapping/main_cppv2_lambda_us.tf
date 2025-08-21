@@ -7,10 +7,10 @@ data "aws_kinesis_firehose_delivery_stream" "userplatform_cpp_firehose_delivery_
   name     = "userplatform_cpp_firehose_delivery_stream_us"
 }
 
-data "aws_kms_alias" "cppv2_kms_key_lambda_us" {
-  provider = aws.us
-  name     = "alias/aws/lambda"
-}
+# data "aws_kms_alias" "cppv2_kms_key_lambda_us" {
+#   provider = aws.us
+#   name     = "alias/aws/lambda"
+# }
 
 resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
   name = "cppv2_lambda_sqs_permissions"
@@ -71,11 +71,17 @@ resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
           "kms:DescribeKey",
           "kms:GenerateDataKeyWithoutPlaintext"
         ],
+
         Resource = [
-          data.aws_kms_alias.cppv2_kms_key_lambda_us.target_key_arn,
-          data.aws_kms_alias.cppv2_kms_key_lambda_eu.target_key_arn,
-          data.aws_kms_alias.cppv2_kms_key_lambda_ap.target_key_arn
+          "arn:aws:kms:${local.route_configs["us"].region}:${var.account_id}:alias/aws/lambda",
+          "arn:aws:kms:${local.route_configs["eu"].region}:${var.account_id}:alias/aws/lambda",
+          "arn:aws:kms:${local.route_configs["ap"].region}:${var.account_id}:alias/aws/lambda"
         ]
+        # Resource = [
+        #   data.aws_kms_alias.cppv2_kms_key_lambda_us.target_key_arn,
+        #   data.aws_kms_alias.cppv2_kms_key_lambda_eu.target_key_arn,
+        #   data.aws_kms_alias.cppv2_kms_key_lambda_ap.target_key_arn
+        # ]
       }
     ]
   })
