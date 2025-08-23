@@ -107,7 +107,7 @@ resource "aws_lambda_function" "cppv2_sqs_lambda_firehose_eu" {
   runtime     = "python3.9"
   timeout     = 180
   memory_size = 1024
-  role        = data.aws_iam_role.cpp_integration_apigw_evtbridge_firehose_logs_role.arn
+  role        = aws_iam_role.cppv2_integration_sqs_lambda_firehose_role.arn
 
   kms_key_arn = null
   # kms_key_arn = data.aws_kms_alias.cppv2_kms_key_lambda_eu.target_key_arn
