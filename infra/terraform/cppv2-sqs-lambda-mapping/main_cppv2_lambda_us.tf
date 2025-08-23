@@ -60,29 +60,29 @@ resource "aws_iam_role_policy" "cppv2_lambda_sqs_permissions" {
           aws_sqs_queue.userplatform_cppv2_sqs_dlq_ap.arn
         ]
       },
-      # {
-      #   "Effect" : "Allow",
-      #   Action : [
-      #     "kms:Decrypt",
-      #     "kms:DescribeKey",
-      #     "kms:Encrypt",
-      #     "kms:ReEncrypt*",
-      #     "kms:GenerateDataKey*",
-      #     "kms:DescribeKey",
-      #     "kms:GenerateDataKeyWithoutPlaintext"
-      #   ],
-      #
-      #   Resource = [
-      #     "arn:aws:kms:${local.route_configs["us"].region}:${var.account_id}:alias/aws/lambda",
-      #     "arn:aws:kms:${local.route_configs["eu"].region}:${var.account_id}:alias/aws/lambda",
-      #     "arn:aws:kms:${local.route_configs["ap"].region}:${var.account_id}:alias/aws/lambda"
-      #   ]
-      #   # Resource = [
-      #   #   data.aws_kms_alias.cppv2_kms_key_lambda_us.target_key_arn,
-      #   #   data.aws_kms_alias.cppv2_kms_key_lambda_eu.target_key_arn,
-      #   #   data.aws_kms_alias.cppv2_kms_key_lambda_ap.target_key_arn
-      #   # ]
-      # }
+      {
+        "Effect" : "Allow",
+        Action : [
+          "kms:Decrypt",
+          "kms:DescribeKey",
+          "kms:Encrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey",
+          "kms:GenerateDataKeyWithoutPlaintext"
+        ],
+        Resource = "*"
+        # Resource = [
+        #   "arn:aws:kms:${local.route_configs["us"].region}:${var.account_id}:alias/aws/lambda",
+        #   "arn:aws:kms:${local.route_configs["eu"].region}:${var.account_id}:alias/aws/lambda",
+        #   "arn:aws:kms:${local.route_configs["ap"].region}:${var.account_id}:alias/aws/lambda"
+        # ]
+        # Resource = [
+        #   data.aws_kms_alias.cppv2_kms_key_lambda_us.target_key_arn,
+        #   data.aws_kms_alias.cppv2_kms_key_lambda_eu.target_key_arn,
+        #   data.aws_kms_alias.cppv2_kms_key_lambda_ap.target_key_arn
+        # ]
+      }
     ]
   })
 }
