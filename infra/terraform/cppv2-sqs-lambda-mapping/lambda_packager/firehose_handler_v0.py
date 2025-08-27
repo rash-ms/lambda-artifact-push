@@ -46,13 +46,14 @@ def archive_error_s3(msg_id: str, body: str, reason: str) -> bool:
         event_wrapper = {"reason": reason, "raw": body}
 
         s3.put_object(
-            Bucket=ERROR_EVENTS_PREFIX,
+            Bucket=EVENTS_BUCKET,
             Key=key,
             Body=json.dumps(event_wrapper, separators=(",", ":")).encode("utf-8"),
             ContentType="application/json",
         )
         return True
-    except Exception:
+    except Exception as e:
+        print(f"[archive_error_s3] failed: bucket={EVENTS_BUCKET} key={key} reason={reason} err={e}")
         return False
 
 def send_to_firehose(event, _ctx):
