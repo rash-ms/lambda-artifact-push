@@ -106,7 +106,7 @@ resource "aws_lambda_function" "cppv2_sqs_lambda_firehose_eu" {
   handler     = "${var.handler_zip}.send_to_firehose"
   runtime     = "python3.9"
   timeout     = 180
-  memory_size = 1024
+  memory_size = 256 # 256mb
   role        = aws_iam_role.cppv2_integration_sqs_lambda_firehose_role.arn
 
   kms_key_arn = null
