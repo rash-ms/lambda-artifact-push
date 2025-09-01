@@ -117,7 +117,7 @@ resource "aws_lambda_function" "cppv2_sqs_lambda_firehose_eu" {
       FIREHOSE_STREAM     = data.aws_kinesis_firehose_delivery_stream.userplatform_cpp_firehose_delivery_stream_eu.name
       REGION              = local.route_configs["eu"].region
       EVENTS_BUCKET       = local.route_configs["eu"].bucket
-      ERROR_EVENTS_PREFIX = "raw/cpp-v2-raw-errors"
+      ERROR_EVENTS_PREFIX = "raw/cppv2-raw-errors"
     }
   }
   depends_on = [aws_s3_object_copy.zip_eu]
