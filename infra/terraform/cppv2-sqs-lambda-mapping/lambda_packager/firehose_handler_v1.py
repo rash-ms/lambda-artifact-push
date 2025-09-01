@@ -9,7 +9,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 REGION = os.environ["REGION"]
 FIREHOSE_STREAM = os.environ["FIREHOSE_STREAM"]
 EVENTS_BUCKET = os.environ.get("EVENTS_BUCKET")
-ERROR_EVENTS_PREFIX = os.environ.get("ERROR_EVENTS_PREFIX", "raw/cpp-v2-raw-errors/")
+ERROR_EVENTS_PREFIX = os.environ.get("ERROR_EVENTS_PREFIX", "raw/cppv2-raw-errors/")
 
 MAX_FIREHOSE_RECORD_BYTES = 1000 * 1024  # ~1 MB
 RETRYABLE_ERR_CODES = {"ThrottlingException", "ServiceUnavailableException", "InternalFailure"}
