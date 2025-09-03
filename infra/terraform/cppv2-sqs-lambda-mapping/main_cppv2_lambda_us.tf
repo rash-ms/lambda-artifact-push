@@ -54,6 +54,7 @@ resource "aws_lambda_function" "cpv2_sqs_lambda_firehose_us" {
       REGION              = local.route_configs["us"].region
       EVENTS_BUCKET       = local.route_configs["us"].bucket
       ERROR_EVENTS_PREFIX = "raw/cppv2-raw-errors"
+      DETAIL_TYPE         = "cpp-us-interface"
     }
   }
 }

@@ -118,6 +118,7 @@ resource "aws_lambda_function" "cppv2_sqs_lambda_firehose_eu" {
       REGION              = local.route_configs["eu"].region
       EVENTS_BUCKET       = local.route_configs["eu"].bucket
       ERROR_EVENTS_PREFIX = "raw/cppv2-raw-errors"
+      DETAIL_TYPE         = "cpp-eu-interface"
     }
   }
   depends_on = [aws_s3_object_copy.zip_eu]

@@ -115,6 +115,7 @@ resource "aws_lambda_function" "cppv2_sqs_lambda_firehose_ap" {
       REGION              = local.route_configs["ap"].region
       EVENTS_BUCKET       = local.route_configs["ap"].bucket
       ERROR_EVENTS_PREFIX = "raw/cppv2-raw-errors"
+      DETAIL_TYPE         = "cpp-ap-interface"
     }
   }
   depends_on = [aws_s3_object_copy.zip_ap]
