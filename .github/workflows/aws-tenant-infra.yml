@@ -22,7 +22,7 @@ jobs:
     with:
       version: 1.2.6
       working_dir: infra
-      infra_dir: dataeng-infra-nonprod/us-east-1
+      infra_dir: push-artifact-s3
       aws_default_region: us-east-1
       environment_plan: dataeng-nonprod-protected
       environment_apply: dataeng-nonprod-protected
