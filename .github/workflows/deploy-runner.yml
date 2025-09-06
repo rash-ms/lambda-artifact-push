@@ -181,6 +181,7 @@ jobs:
                 sudo chmod +x /usr/bin/yq
 
             - name: Redeploy Lambdas
+              shell: bash
               run: |
                 chmod +x utils/redeploy.sh
                 utils/redeploy.sh utils/lambda_config/manifest.yaml
