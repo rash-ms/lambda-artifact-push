@@ -145,9 +145,7 @@ jobs:
                     continue
                   fi
                   
-                  pushd "$module_dir" > /dev/null
-            #     cd "$module_dir"
-
+                  cd "$module_dir"
                   BUILD_DIR=".zip_build"
                   rm -rf "$BUILD_DIR" && mkdir "$BUILD_DIR"
             
