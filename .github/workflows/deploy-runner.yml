@@ -181,10 +181,9 @@ jobs:
                 sudo chmod +x /usr/bin/yq
 
             - name: Redeploy Lambdas
-              shell: bash
               run: |
-                chmod +x utils/redeploy.sh
-                utils/redeploy.sh utils/lambda_config/manifest.yaml
+                chmod +x ${{ inputs.working_dir }}/utils/redeploy.sh
+                ${{ inputs.working_dir }}/utils/redeploy.sh ${{ inputs.working_dir }}/utils/lambda_config/manifest.yaml
 
 
 #    deploy_terraform:
