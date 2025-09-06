@@ -131,7 +131,6 @@ jobs:
               run: |
                 BUCKET="${{ inputs.lambda_zip_bucket }}"
                 WORKING_DIR="${{ inputs.working_dir }}"
-                SHARED_HANDLER_PATH=$(find "$GITHUB_WORKSPACE/$WORKING_DIR/shared_slack_packager" -name "*.py" | head -n 1)
             
                 IFS=',' read -r -a infra_dirs <<< "${{ steps.module_path.outputs.infra_dir }}"
             
@@ -141,22 +140,21 @@ jobs:
             
                   echo -e "\n---------------\n\033[1;35mupload_zip: $module_dir\033[0m\n---------------\n"
 
-                  cd "$module_dir"
+                  if [[ ! -d "$module_dir" ]]; then
+                    echo "Dir not found: $module_dir — skipping."
+                    continue
+                  fi
+                  
+                  pushd "$module_dir" > /dev/null
+            #     cd "$module_dir"
+
                   BUILD_DIR=".zip_build"
                   rm -rf "$BUILD_DIR" && mkdir "$BUILD_DIR"
             
-                  if [[ "$module" == *"slackbot"* && -n "$SHARED_HANDLER_PATH" ]]; then
-                    cp "$SHARED_HANDLER_PATH" "$BUILD_DIR/"
-                    py_file=$(basename "$SHARED_HANDLER_PATH")
-                    handler_name="${py_file%.py}"
-                    echo "TF_VAR_shared_handler_zip=$handler_name" >> $GITHUB_ENV
-                    echo "shared_handler_zip=$handler_name" >> $GITHUB_OUTPUT
-                  else
-                    py_file=$(find . -type f -name "*.py" | head -n 1 | sed 's|./||')
-                    [[ -z "$py_file" ]] && echo "No .py file found in $module. Skipping." && cd - > /dev/null && continue
-                    cp "$py_file" "$BUILD_DIR/"
-                  fi
-                  
+                  py_file=$(find . -type f -name "*.py" | head -n 1 | sed 's|./||')
+                  [[ -z "$py_file" ]] && echo "No .py file found in $module. Skipping." && cd - > /dev/null && continue
+                  cp "$py_file" "$BUILD_DIR/"
+                     
                   REQ_FILE="$GITHUB_WORKSPACE/$WORKING_DIR/requirements.txt"
                   [[ -f "$REQ_FILE" ]] && pip install -r "$REQ_FILE" -t "$BUILD_DIR/"
 
@@ -164,8 +162,8 @@ jobs:
                   S3_KEY="$module/$ZIP_NAME"
             
                   echo "Checking if s3://$BUCKET/$S3_KEY already exists..."
-                  if aws s3 ls "s3://$BUCKET/$S3_KEY" > /dev/null; then
-                    echo "File $S3_KEY already exists in S3. Skipping upload."
+                  if aws s3api head-object --bucket "$BUCKET" --key "$S3_KEY" > /dev/null 2>&1; then
+                    echo "s3://$BUCKET/$S3_KEY already exists — skipping upload."
                   else
                     echo "Zipping and uploading $ZIP_NAME to s3://$BUCKET/$S3_KEY"
                     
@@ -178,6 +176,17 @@ jobs:
                 
                   cd - > /dev/null
                 done
+
+            - name: Install yq
+              run: |
+                sudo wget https://github.com/mikefarah/yq/releases/download/v4.44.1/yq_linux_amd64 -O /usr/bin/yq
+                sudo chmod +x /usr/bin/yq
+
+            - name: Redeploy Lambdas
+              run: |
+                chmod +x redeploy.sh
+                ./redeploy.sh utils/lambda_config/manifest.yaml
+
 
 #    deploy_terraform:
 #      name: Run Terraform Deployment
