@@ -136,7 +136,7 @@ jobs:
             
                 for infra_dir in "${infra_dirs[@]}"; do
                   module=$(basename "$infra_dir")
-                  module_dir="$WORKING_DIR/$module"
+                  module_dir="$WORKING_DIR/push-artifact-s3/$module"
             
                   echo -e "\n---------------\n\033[1;35mupload_zip: $module_dir\033[0m\n---------------\n"
 
@@ -184,6 +184,7 @@ jobs:
               run: |
                 chmod +x utils/redeploy.sh
                 utils/redeploy.sh utils/lambda_config/manifest.yaml
+
 
 #    deploy_terraform:
 #      name: Run Terraform Deployment
