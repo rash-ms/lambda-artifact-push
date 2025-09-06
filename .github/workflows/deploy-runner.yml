@@ -179,27 +179,27 @@ jobs:
                   cd - > /dev/null
                 done
 
-    deploy_terraform:
-      name: Run Terraform Deployment
-      needs: zip_and_upload
-      uses: rash-ms/planet-workflow/.github/workflows/infra-deployer.yml@1.0.0
-      permissions:
-        id-token: write
-        contents: read
-      with:
-        version: ${{ inputs.version }}
-        working_dir: ${{ inputs.working_dir }}
-        infra_dir: ${{ inputs.infra_dir }}
-        aws_default_region: ${{ inputs.aws_default_region }}
-        environment_plan: ${{ inputs.environment_plan }}
-        environment_apply: ${{ inputs.environment_apply }}
-        main_branch: ${{ inputs.main_branch }}
-        selected_modules: ${{ inputs.selected_modules }}
-      secrets:
-        account_id: ${{ secrets.account_id }}
-        role_to_assume: ${{ secrets.role_to_assume }}
-        destroyer_token: ${{ secrets.destroyer_token }}
-        render_webhook_url: ${{ secrets.render_webhook_url }}
-        tf_env_vars: |
-            TF_VAR_slack_webhook_url=${{ secrets.slack_env_vars }}
-            TF_VAR_shared_handler_zip=${{ needs.zip_and_upload.outputs.shared_handler_zip }}
+#    deploy_terraform:
+#      name: Run Terraform Deployment
+#      needs: zip_and_upload
+#      uses: rash-ms/planet-workflow/.github/workflows/infra-deployer.yml@1.0.0
+#      permissions:
+#        id-token: write
+#        contents: read
+#      with:
+#        version: ${{ inputs.version }}
+#        working_dir: ${{ inputs.working_dir }}
+#        infra_dir: ${{ inputs.infra_dir }}
+#        aws_default_region: ${{ inputs.aws_default_region }}
+#        environment_plan: ${{ inputs.environment_plan }}
+#        environment_apply: ${{ inputs.environment_apply }}
+#        main_branch: ${{ inputs.main_branch }}
+#        selected_modules: ${{ inputs.selected_modules }}
+#      secrets:
+#        account_id: ${{ secrets.account_id }}
+#        role_to_assume: ${{ secrets.role_to_assume }}
+#        destroyer_token: ${{ secrets.destroyer_token }}
+#        render_webhook_url: ${{ secrets.render_webhook_url }}
+#        tf_env_vars: |
+#            TF_VAR_slack_webhook_url=${{ secrets.slack_env_vars }}
+#            TF_VAR_shared_handler_zip=${{ needs.zip_and_upload.outputs.shared_handler_zip }}
