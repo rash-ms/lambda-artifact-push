@@ -52,6 +52,11 @@ for MF in "${MANIFESTS[@]}"; do
     echo -e "→ ${CYAN}$FN${RESET}"
     echo -e "   ${CYAN}bucket=${BUCKET} prefix=${PREFIX} handler=${HANDLER_EXPORT}${RESET}"
 
+    # normalize handler (treat null/empty as absent)
+    if [[ -z "${HANDLER_EXPORT:-}" || "${HANDLER_EXPORT}" == "null" ]]; then
+      HANDLER_EXPORT=""
+    fi
+
     if [[ -z "$REGION" ]]; then
       echo -e "   ${RED}No region mapped for manifest prefix '${prefix_tag}' — skipping.${RESET}"
       continue
@@ -80,8 +85,8 @@ for MF in "${MANIFESTS[@]}"; do
 
     echo -e "   Using: s3://$BUCKET/$KEY"
 
-    # fetch current lambda config
-    read -r CUR_HASH CUR_HANDLER <<<"$(aws lambda get-function-configuration \
+    # fetch current lambda config (pre-update)
+    read -r CUR_HASH _ <<<"$(aws lambda get-function-configuration \
       --region "$REGION" --function-name "$FN" \
       --query '[CodeSha256, Handler]' --output text)"
 
@@ -104,6 +109,14 @@ for MF in "${MANIFESTS[@]}"; do
       echo -e "   ${YELLOW}No code change — skipped code update.${RESET}"
     fi
 
+    # Wait until Lambda finishes any update before touching configuration
+    aws lambda wait function-updated --region "$REGION" --function-name "$FN" || true
+
+    # Re-fetch handler AFTER wait so we compare against the latest config
+    CUR_HANDLER="$(aws lambda get-function-configuration \
+      --region "$REGION" --function-name "$FN" \
+      --query 'Handler' --output text)"
+
     # build handler from zip name + YAML export and update if needed
     if [[ -n "${HANDLER_EXPORT}" ]]; then
       ZIP_BASENAME="$(basename "$KEY")"   # e.g. firehose_handler_v2.zip
@@ -122,6 +135,7 @@ for MF in "${MANIFESTS[@]}"; do
     fi
   done
 done
+
 
 
 
