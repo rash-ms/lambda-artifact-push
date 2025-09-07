@@ -129,7 +129,7 @@ jobs:
               id: handler_zip
               run: |
                 WORKING_DIR="${{ inputs.working_dir }}"
-                CONFIG="$GITHUB_WORKSPACE/$WORKING_DIR/utils/lambda_config/redeploy_manifest/artifact_ci_config.yaml"
+                CONFIG="$GITHUB_WORKSPACE/$WORKING_DIR/utils/lambda_config/artifact_ci_config.yaml"
 
             
                 [[ -f "$CONFIG" ]] || { echo "Config not found: $CONFIG"; exit 1; }
