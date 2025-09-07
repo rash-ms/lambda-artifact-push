@@ -127,10 +127,9 @@ jobs:
 
             - name: Zip and Upload File to S3
               id: handler_zip
-              if: ${{ inputs.lambda_zip_bucket != '' }}
               run: |
                 WORKING_DIR="${{ inputs.working_dir }}"
-                CONFIG="$WORKING_DIR/utils/lambda_config/redeploy_manifest/artifact_ci_config.yaml"
+                CONFIG="$WORKING_DIR/utils/lambda_config/artifact_ci_config.yaml"
             
                 [[ -f "$CONFIG" ]] || { echo "Config not found: $CONFIG"; exit 1; }
 
