@@ -1,5 +1,5 @@
 - function_name: my-func-1
-  bucket: my-artifacts-bucket
+  bucket: cn-infra-lambda-artifacts-stg-eu
   key: lambdas/my-func-1/1.0.0/build.zip
 
 - function_name: my-func-2
