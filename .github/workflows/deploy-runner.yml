@@ -164,22 +164,25 @@ jobs:
                 
                   ( cd "$BUILD_DIR" && zip -r "../$ZIP_NAME" . > /dev/null )
                   S3_KEY="$module/$ZIP_NAME"
-            
+                  
+                  BOLD="\033[1m"; RESET="\033[0m"
+                  CYAN="\033[36m"; YELLOW="\033[33m"; GREEN="\033[32m"; GRAY="\033[90m"
+
                   # For every region that lists this module, upload to that region’s bucket
                   for REGION in $(yq e 'keys | .[]' "$CONFIG"); do
                     if yq -e ".\"$REGION\".modules[] | select(. == \"$module\")" "$CONFIG" > /dev/null 2>&1; then
                       BUCKET="$(yq -r ".\"$REGION\".bucket" "$CONFIG")"
-                      echo "Region $REGION → bucket $BUCKET → key $S3_KEY"
+                
+                      echo -e "\n${BOLD}${CYAN}[$REGION]${RESET}  s3://${BUCKET}/${S3_KEY}"
             
                       if aws s3api head-object --region "$REGION" --bucket "$BUCKET" --key "$S3_KEY" > /dev/null 2>&1; then
-                        echo "s3://$BUCKET/$S3_KEY already exists — skipping."
+                        echo -e "   ${YELLOW}Skipped${RESET} — already exists"
+                
                       else
-                        echo "Removing old artifacts..."
                         aws s3 rm "s3://$BUCKET/$module/" --recursive --region "$REGION"
-            
-                        echo "Uploading new artifact..."
                         aws s3 cp "$ZIP_NAME" "s3://$BUCKET/$S3_KEY" --region "$REGION" --content-type application/zip
-                        echo "Uploaded: s3://$BUCKET/$S3_KEY"
+                        echo -e "   ${GREEN}Uploaded${RESET}"
+                
                       fi
                     fi
                   done
