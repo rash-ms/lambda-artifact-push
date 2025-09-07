@@ -142,7 +142,7 @@ jobs:
                   for REGION in $(yq e 'keys | .[]' "$CONFIG"); do
                     if yq -e ".\"$REGION\".modules[] | select(. == \"$module\")" "$CONFIG" > /dev/null 2>&1; then
                       BUCKET="$(yq -r ".\"$REGION\".bucket" "$CONFIG")"
-                deploy-runner.yml
+                
                       echo -e "\n${BOLD}${CYAN}[$REGION]${RESET}  s3://${BUCKET}/${S3_KEY}"
             
                       if aws s3api head-object --region "$REGION" --bucket "$BUCKET" --key "$S3_KEY" > /dev/null 2>&1; then
