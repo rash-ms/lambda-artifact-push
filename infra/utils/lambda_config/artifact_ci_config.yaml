@@ -2,15 +2,15 @@ us-east-1:
   bucket: cn-infra-lambda-artifacts
   modules:
     - slack-alert-lambda
+    - lambda-s3-presignedUrl
+    - sqs-lambda-mapping
 
 eu-central-1:
   bucket: cn-infra-lambda-artifacts-stg-eu
   modules:
-    - lambda-s3-presignedUrl
-    - slack-alert-lambda
+    - sqs-lambda-mapping
 
 ap-northeast-1:
   bucket: cn-infra-lambda-artifacts-stg-ap
   modules:
-    - lambda-s3-presignedUrl
-    - slack-alert-lambda
+    - sqs-lambda-mapping
