@@ -1,16 +1,22 @@
 us-east-1:
-  bucket: cn-infra-lambda-artifacts
+#  bucket: cn-infra-lambda-artifacts
+  stg_bucket: cn-infra-lambda-artifacts
+  prod_bucket: cn-infra-lambda-artifacts
   modules:
     - slack-alert-lambda
     - lambda-s3-presignedUrl
     - sqs-lambda-mapping
 
 eu-central-1:
-  bucket: cn-infra-lambda-artifacts-stg-eu
+#  bucket: cn-infra-lambda-artifacts-stg-eu
+  stg_bucket: cn-infra-lambda-artifacts-stg-eu
+  prod_bucket: cn-infra-lambda-artifacts-prod-eu
   modules:
     - sqs-lambda-mapping
 
 ap-northeast-1:
-  bucket: cn-infra-lambda-artifacts-stg-ap
+#  bucket: cn-infra-lambda-artifacts-stg-ap
+  stg_bucket: cn-infra-lambda-artifacts-stg-ap
+  prod_bucket: cn-infra-lambda-artifacts-prod-ap
   modules:
     - sqs-lambda-mapping

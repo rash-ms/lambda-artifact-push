@@ -39,6 +39,12 @@ on:
                 type: number
                 required: false
                 default: 1
+            bucket_key:
+              description: "Which key in artifact_ci_config.yaml to use (stg_bucket|prod_bucket)"
+              required: false
+              type: string
+              default: stg_bucket
+
 #            lambda_zip_bucket:
 #                description: "S3 bucket where Lambda zips will be uploaded"
 #                required: false
@@ -100,7 +106,7 @@ jobs:
               run: |
                 WORKING_DIR="${{ inputs.working_dir }}"
                 CONFIG="$GITHUB_WORKSPACE/$WORKING_DIR/utils/lambda_config/artifact_ci_config.yaml"
-
+                BUCKET_KEY="${{ inputs.bucket_key }}"
             
                 [[ -f "$CONFIG" ]] || { echo "Config not found: $CONFIG"; exit 1; }
 
@@ -141,7 +147,8 @@ jobs:
                   # For every region that lists this module, upload to that region’s bucket
                   for REGION in $(yq e 'keys | .[]' "$CONFIG"); do
                     if yq -e ".\"$REGION\".modules[] | select(. == \"$module\")" "$CONFIG" > /dev/null 2>&1; then
-                      BUCKET="$(yq -r ".\"$REGION\".bucket" "$CONFIG")"
+                      BUCKET="$(yq -r ".\"$REGION\".${BUCKET_KEY}" "$CONFIG")"
+                      [[ -z "$BUCKET" || "$BUCKET" == "null" ]] && { echo "No bucket for $REGION/$BUCKET_KEY — skipping."; continue; }
                 
                       echo -e "\n${BOLD}${CYAN}[$REGION]${RESET}  s3://${BUCKET}/${S3_KEY}"
             
@@ -166,6 +173,8 @@ jobs:
                 sudo chmod +x /usr/bin/yq
 
             - name: Redeploy Lambdas
+              env:
+                BUCKET_KEY: ${{ inputs.bucket_key }}
               run: |
                 chmod +x ${{ inputs.working_dir }}/utils/redeploy_sync.sh
                 ${{ inputs.working_dir }}/utils/redeploy_sync.sh ${{ inputs.working_dir }}/utils/lambda_config/redeploy_manifest

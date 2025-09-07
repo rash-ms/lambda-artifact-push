@@ -1,8 +1,13 @@
-- function_name: cppv2_sqs_lambda_firehose_eu
-  bucket: cn-infra-lambda-artifacts-stg-eu
-  key: sqs-lambda-mapping
-  handler: send_to_firehose
+buckets:
+  stg_bucket:  cn-infra-lambda-artifacts-stg-eu
+  prod_bucket: cn-infra-lambda-artifacts-prod-eu
 
-- function_name: my-func-2
-  bucket: my-artifacts-bucket
-  key: lambdas
+lambdas:
+  - function_name: cppv2_sqs_lambda_firehose_eu
+    key: sqs-lambda-mapping
+    handler: send_to_firehose
+
+  - function_name: my-func-2
+    key: lambdas
+    handler: handler
+

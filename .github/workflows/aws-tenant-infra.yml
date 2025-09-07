@@ -27,6 +27,7 @@ jobs:
       environment_plan: dataeng-nonprod-protected
       environment_apply: dataeng-nonprod-protected
       main_branch: main
+      bucket_key: stg_bucket
 #      selected_modules: complete-modules
 #      lambda_zip_bucket: cn-infra-lambda-artifacts
 
@@ -56,6 +57,7 @@ jobs:
 #      environment_apply: dataeng-prod-protected
 #      main_branch: main
 #      lambda_zip_bucket: byt-infra-test-bucket
+#      bucket_key: prod_bucket
 #    secrets:
 #      account_id: ${{ secrets.ACCOUNT_ID }}
 #      role_to_assume: ${{ secrets.ROLE_TO_ASSUME }}
