@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Colors
 RED="\033[1;31m"; GREEN="\033[1;32m"; YELLOW="\033[1;33m"
 MAGENTA="\033[1;35m"; CYAN="\033[1;36m"; RESET="\033[0m"
 
@@ -19,19 +20,24 @@ mapfile -t MANIFESTS < <(find "$MANIFEST_DIR" -type f -name '*-lambda-manifest.y
 
 for MF in "${MANIFESTS[@]}"; do
   base="$(basename "$MF")"
-  prefix="${base%%-*}"
-  REGION="$(map_region "$prefix" || true)"
+  prefix_tag="${base%%-*}"
+  REGION="$(map_region "$prefix_tag" || true)"
 
   echo -e "\n${MAGENTA}================================"
   echo -e " Manifest: ${CYAN}$MF${RESET}"
-  echo -e " Region:   ${YELLOW}$REGION${RESET}"
+  echo -e " Region:   ${YELLOW}${REGION:-<unknown>}${RESET}"
   echo -e "================================${RESET}\n"
 
-  # function_name, bucket, key/prefix, optional filename (ignored if empty), optional handler (export only)
+  # TSV: function_name, bucket, key/prefix, optional filename, optional handler(export only)
   yq -r '.[] | [.function_name, .bucket, (.key // .prefix // ""), (.filename // ""), (.handler // "")] | @tsv' "$MF" |
   while IFS=$'\t' read -r FN BUCKET PREFIX FILENAME HANDLER_EXPORT; do
     [[ -z "${FN:-}" ]] && continue
     echo -e "→ ${CYAN}$FN${RESET}"
+
+    if [[ -z "$REGION" ]]; then
+      echo -e "   ${RED}No region mapped for manifest prefix '${prefix_tag}' — skipping.${RESET}"
+      continue
+    fi
 
     if ! aws lambda get-function --region "$REGION" --function-name "$FN" >/dev/null 2>&1; then
       echo -e "   ${RED}[$FN] not found in $REGION — skipping.${RESET}"
@@ -46,27 +52,27 @@ for MF in "${MANIFESTS[@]}"; do
     fi
 
     # choose artifact:
-    # - if YAML gave .filename, use it
-    # - else pick most recent .zip under prefix
     if [[ -n "${FILENAME}" ]]; then
       KEY="${PREFIX}${FILENAME}"
     else
-      KEY=$(aws s3api list-objects-v2 \
-              --region "$REGION" \
-              --bucket "$BUCKET" \
-              --prefix "$PREFIX" \
-              --query 'reverse(sort_by(Contents[?ends_with(Key, `.zip`)==`true`], &LastModified))[:1].Key' \
-              --output text 2>/dev/null || true)
+      # list all objects and pick the one zip (you overwrite so there’s only one)
+      CANDIDATES=$(aws s3api list-objects-v2 \
+                     --region "$REGION" \
+                     --bucket "$BUCKET" \
+                     --prefix "$PREFIX" \
+                     --query 'Contents[].Key' \
+                     --output text 2>/dev/null || true)
+      KEY="$(printf '%s\n' $CANDIDATES | awk '/\.zip$/ {print; exit}')"
     fi
 
-    if [[ -z "$KEY" || "$KEY" == "None" ]] || ! aws s3api head-object --region "$REGION" --bucket "$BUCKET" --key "$KEY" >/dev/null 2>&1; then
-      echo -e "   ${YELLOW}No usable .zip at s3://$BUCKET/${PREFIX} (or file missing) — skipping.${RESET}"
+    if [[ -z "$KEY" || "$KEY" == "None" ]]; then
+      echo -e "   ${YELLOW}No .zip found under s3://$BUCKET/${PREFIX}${RESET}"
       continue
     fi
 
     echo -e "   Using: s3://$BUCKET/$KEY"
 
-    # current config
+    # fetch current lambda config
     read -r CUR_HASH CUR_HANDLER <<<"$(aws lambda get-function-configuration \
       --region "$REGION" --function-name "$FN" \
       --query '[CodeSha256, Handler]' --output text)"
@@ -77,7 +83,7 @@ for MF in "${MANIFESTS[@]}"; do
     NEW_HASH=$(openssl dgst -binary -sha256 "$TMP_ZIP" | openssl base64)
     rm -f "$TMP_ZIP"
 
-    # update code if changed
+    # update function code only if hash changed
     if [[ "$CUR_HASH" != "$NEW_HASH" ]]; then
       aws lambda update-function-code \
         --region "$REGION" \
@@ -90,11 +96,12 @@ for MF in "${MANIFESTS[@]}"; do
       echo -e "   ${YELLOW}No code change — skipped code update.${RESET}"
     fi
 
-    # if YAML has handler export, compose "<module>.<export>" from the chosen zip and set it
+    # update handler: module comes from zip name, export comes from YAML
     if [[ -n "${HANDLER_EXPORT}" ]]; then
-      ZIP_BASENAME="$(basename "$KEY")"          # e.g., firehose_handler_v2.zip
-      MODULE_NAME="${ZIP_BASENAME%.zip}"         # -> firehose_handler_v2
-      DESIRED_HANDLER="${MODULE_NAME}.${HANDLER_EXPORT}"  # -> firehose_handler_v2.send_to_firehose
+      ZIP_BASENAME="$(basename "$KEY")"   # e.g. firehose_handler_v2.zip
+      MODULE_NAME="${ZIP_BASENAME%.zip}"  # -> firehose_handler_v2
+      DESIRED_HANDLER="${MODULE_NAME}.${HANDLER_EXPORT}"
+
       if [[ "$CUR_HANDLER" != "$DESIRED_HANDLER" ]]; then
         aws lambda update-function-configuration \
           --region "$REGION" \
@@ -104,11 +111,10 @@ for MF in "${MANIFESTS[@]}"; do
       else
         echo -e "   Handler already ${CYAN}$DESIRED_HANDLER${RESET} — no change."
       fi
-    else
-      echo -e "   No 'handler' in YAML — leaving handler unchanged."
     fi
   done
 done
+
 
 
 
