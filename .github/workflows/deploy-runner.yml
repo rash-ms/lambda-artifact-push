@@ -129,16 +129,18 @@ jobs:
               id: handler_zip
               if: ${{ inputs.lambda_zip_bucket != '' }}
               run: |
-                BUCKET="${{ inputs.lambda_zip_bucket }}"
                 WORKING_DIR="${{ inputs.working_dir }}"
+                CONFIG="$WORKING_DIR/infra/utils/lambda_config/redeploy_manifest/artifact_ci_config.yaml"
             
-                IFS=',' read -r -a infra_dirs <<< "${{ steps.module_path.outputs.infra_dir }}"
+                [[ -f "$CONFIG" ]] || { echo "Config not found: $CONFIG"; exit 1; }
+
+                # 1) Build a UNIQUE list of modules from the YAML
+                mapfile -t MODULES < <(yq -r '.[] | .modules[]' "$CONFIG" | sort -u)
+                          
+                for module in "${MODULES[@]}"; do
+                  module_dir="$WORKING_DIR/infra/push-artifact-s3/$module"
             
-                for infra_dir in "${infra_dirs[@]}"; do
-                  module=$(basename "$infra_dir")
-                  module_dir="$WORKING_DIR/push-artifact-s3/$module"
-            
-                  echo -e "\n---------------\n\033[1;35mupload_zip: $module_dir\033[0m\n---------------\n"
+                  echo -e "\n---------------\n\033[1;35mmodule: $module_dir\033[0m\n---------------\n"
 
                   if [[ ! -d "$module_dir" ]]; then
                     echo "Dir not found: $module_dir — skipping."
@@ -155,24 +157,31 @@ jobs:
                      
                   REQ_FILE="$GITHUB_WORKSPACE/$WORKING_DIR/requirements.txt"
                   [[ -f "$REQ_FILE" ]] && pip install -r "$REQ_FILE" -t "$BUILD_DIR/"
-
+            
                   ZIP_NAME="${py_file%.py}.zip"
+                  ( cd "$BUILD_DIR" && zip -r "../$ZIP_NAME" . > /dev/null )
                   S3_KEY="$module/$ZIP_NAME"
             
-                  echo "Checking if s3://$BUCKET/$S3_KEY already exists..."
-                  if aws s3api head-object --bucket "$BUCKET" --key "$S3_KEY" > /dev/null 2>&1; then
-                    echo "s3://$BUCKET/$S3_KEY already exists — skipping upload."
-                  else
-                    echo "Zipping and uploading $ZIP_NAME to s3://$BUCKET/$S3_KEY"
-                    
-                    mkdir -p "$(dirname "../$ZIP_NAME")"
-                    (cd "$BUILD_DIR" && zip -r "../$ZIP_NAME" .)
-                  
-                    aws s3 rm "s3://$BUCKET/$module/" --recursive
-                    aws s3 cp "$ZIP_NAME" "s3://$BUCKET/$S3_KEY"
-                  fi
-                
-                  cd - > /dev/null
+                  # For every region that lists this module, upload to that region’s bucket
+                  for REGION in $(yq e 'keys | .[]' "$CONFIG"); do
+                    if yq -e ".\"$REGION\".modules[] | select(. == \"$module\")" "$CONFIG" > /dev/null 2>&1; then
+                      BUCKET="$(yq -r ".\"$REGION\".bucket" "$CONFIG")"
+                      echo "Region $REGION → bucket $BUCKET → key $S3_KEY"
+            
+                      if aws s3api head-object --region "$REGION" --bucket "$BUCKET" --key "$S3_KEY" > /dev/null 2>&1; then
+                        echo "s3://$BUCKET/$S3_KEY already exists — skipping."
+                      else
+                        echo "Removing old artifacts..."
+                        aws s3 rm "s3://$BUCKET/$module/" --recursive --region "$REGION"
+            
+                        echo "Uploading new artifact..."
+                        aws s3 cp "$ZIP_NAME" "s3://$BUCKET/$S3_KEY" --region "$REGION" --content-type application/zip
+                        echo "Uploaded: s3://$BUCKET/$S3_KEY"
+                      fi
+                    fi
+                  done
+          
+                  popd > /dev/null
                 done
 
             - name: Install yq
@@ -182,9 +191,8 @@ jobs:
 
             - name: Redeploy Lambdas
               run: |
-                chmod +x ${{ inputs.working_dir }}/utils/redeploy.sh
-                ${{ inputs.working_dir }}/utils/redeploy.sh ${{ inputs.working_dir }}/utils/lambda_config/manifest.yaml
-
+                chmod +x ${{ inputs.working_dir }}/utils/redeploy_sync.sh
+                ${{ inputs.working_dir }}/utils/redeploy_sync.sh ${{ inputs.working_dir }}/utils/lambda_config/redeploy_manifest
 
 #    deploy_terraform:
 #      name: Run Terraform Deployment
