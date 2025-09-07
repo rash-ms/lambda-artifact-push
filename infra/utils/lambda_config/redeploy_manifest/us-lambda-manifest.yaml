@@ -6,3 +6,4 @@
 - function_name: cpp_integration_slackbot_lambda-function
   bucket: cn-infra-lambda-artifacts
   key: slack-alert-lambda
+  handler: presigner_url_s3

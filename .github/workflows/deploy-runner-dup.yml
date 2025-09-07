@@ -1,0 +1,226 @@
+#name: Reusable Terraform workflow
+#
+#on:
+#    workflow_call:
+#        inputs:
+#            working_dir:
+#                description: "Describing the path to the terraform module configuration"
+#                required: false
+#                type: string
+#            version:
+#                description: "Terraform Version to be used"
+#                type: string
+#                default: "~1.2.6"
+#            environment_plan:
+#                description: "The prefix of the Github env for the plan"
+#                required: false
+#                type: string
+#            environment_apply:
+#                description: "The prefix of the Github env for the apply"
+#                required: false
+#                type: string
+#            main_branch:
+#                type: string
+#                default: main
+#            infra_dir:
+#                type: string
+#                required: true
+#                description: "The path to the module terraform tfvars files"
+#            aws_default_region:
+#                description: "AWS region for the plan and apply"
+#                type: string
+#                required: true
+#                default: "us-east-1"
+#            enable_branch_apply:
+#                type: boolean
+#                required: false
+#                default: false
+#            retention_days:
+#                type: number
+#                required: false
+#                default: 1
+#            lambda_zip_bucket:
+#                description: "S3 bucket where Lambda zips will be uploaded"
+#                required: false
+#                type: string
+#            selected_modules:
+#                type: string
+#                description: 'Comma-separated list of modules to run (e.g., network,auth) or "all"'
+#                required: false
+#                default: 'complete-modules'
+#        secrets:
+#            account_id:
+#                required: true
+#            role_to_assume:
+#                required: true
+#            destroyer_token:
+#                required: true
+#            render_webhook_url:
+#                required: true
+#            slack_env_vars:
+#                required: false
+#
+#permissions:
+#    id-token: write
+#    contents: read
+#
+#jobs:
+#    zip_and_upload:
+#        name: Package Lambda Code
+#        runs-on: ubuntu-latest
+#        environment: ${{ inputs.environment_plan }}
+#        outputs:
+#            infra_dir: ${{ steps.module_path.outputs.infra_dir }}
+#            shared_handler_zip: ${{ steps.handler_zip.outputs.shared_handler_zip }}
+#        steps:
+#            - name: Checkout Respository
+#              uses: actions/checkout@v4
+#
+#            - name: Configure AWS credentials using OIDC
+#              uses: aws-actions/configure-aws-credentials@v2
+#              with:
+#                  role-to-assume: arn:aws:iam::${{ secrets.account_id }}:role/${{ secrets.role_to_assume }}
+#                  aws-region: ${{ inputs.aws_default_region }}
+#
+#            - uses: hashicorp/setup-terraform@v3
+#              name: Setup Terraform
+#              with:
+#                terraform_version: ${{ inputs.version }}
+#                terraform_wrapper: false
+#
+#            - name: Verify Caller Identity
+#              run: |
+#                echo "AWS Account: $(aws sts get-caller-identity --query Account --output text)"
+#                echo "Role Verified: $(aws sts get-caller-identity --query Arn --output text | sed 's/:[^:]*$/:**MASKED**/g')"
+#                echo "Verifying AWS Identity..."
+#                aws sts get-caller-identity
+#
+#            - name: Fetch Runner File
+#              id: module_path
+#              run: |
+#                infra_dir=()
+#                module_dirs=($(find "${{ inputs.working_dir }}/${{ inputs.infra_dir }}" -mindepth 1 -maxdepth 1 -type d))
+#                if [ ${#module_dirs[@]} -eq 0 ]; then
+#                  infra_dir+=("${{ inputs.infra_dir }}")
+#                else
+#                  for module_dir in "${module_dirs[@]}"; do
+#                    module=$(basename "$module_dir")
+#                    sub_dirs=($(find "$module_dir" -mindepth 1 -maxdepth 1 -type d))
+#                    if [ ${#sub_dirs[@]} -gt 0 ]; then
+#                      for sub_dir in "${sub_dirs[@]}"; do
+#                        nested_dirs=($(find "$sub_dir" -mindepth 1 -maxdepth 1 -type d))
+#                        if [ ${#nested_dirs[@]} -gt 0 ]; then
+#                          for nested_dir in "${nested_dirs[@]}"; do
+#                            infra_dir+=("${{ inputs.infra_dir }}/$module/$(basename "$sub_dir")/$(basename "$nested_dir")")
+#                          done
+#                        else
+#                          infra_dir+=("${{ inputs.infra_dir }}/$module/$(basename "$sub_dir")")
+#                        fi
+#                      done
+#                    else
+#                      infra_dir+=("${{ inputs.infra_dir }}/$module")
+#                    fi
+#                  done
+#                fi
+#                echo "Infra Directories: ${infra_dir[@]}"
+#                echo "infra_dir=$(IFS=, ; echo "${infra_dir[*]}")" >> $GITHUB_OUTPUT
+#
+#            - name: Zip and Upload File to S3
+#              id: handler_zip
+#              run: |
+#                WORKING_DIR="${{ inputs.working_dir }}"
+#                CONFIG="$GITHUB_WORKSPACE/$WORKING_DIR/utils/lambda_config/artifact_ci_config.yaml"
+#
+#
+#                [[ -f "$CONFIG" ]] || { echo "Config not found: $CONFIG"; exit 1; }
+#
+#                # 1) Build a UNIQUE list of modules from the YAML
+#                mapfile -t MODULES < <(yq -r '.[] | .modules[]' "$CONFIG" | sort -u)
+#
+#                for module in "${MODULES[@]}"; do
+#                  module_dir="$WORKING_DIR/push-artifact-s3/$module"
+#
+#                  echo -e "\n---------------\n\033[1;35mmodule: $module_dir\033[0m\n---------------\n"
+#
+#                  if [[ ! -d "$module_dir" ]]; then
+#                    echo "Dir not found: $module_dir — skipping."
+#                    continue
+#                  fi
+#
+#                  pushd "$module_dir" > /dev/null
+#
+#                  BUILD_DIR=".zip_build"
+#                  rm -rf "$BUILD_DIR" && mkdir "$BUILD_DIR"
+#
+#                  py_file=$(find . -type f -name "*.py" | head -n 1 | sed 's|./||')
+#                  [[ -z "$py_file" ]] && echo "No .py file found in $module. Skipping." && cd - > /dev/null && continue
+#                  cp "$py_file" "$BUILD_DIR/"
+#
+#                  REQ_FILE="$GITHUB_WORKSPACE/$WORKING_DIR/requirements.txt"
+#                  [[ -f "$REQ_FILE" ]] && pip install -r "$REQ_FILE" -t "$BUILD_DIR/"
+#
+#                  ZIP_NAME="${py_file##*/}"
+#                  ZIP_NAME="${ZIP_NAME%.py}.zip"
+#
+#                  ( cd "$BUILD_DIR" && zip -r "../$ZIP_NAME" . > /dev/null )
+#                  S3_KEY="$module/$ZIP_NAME"
+#
+#                  BOLD="\033[1m"; RESET="\033[0m"
+#                  CYAN="\033[36m"; YELLOW="\033[33m"; GREEN="\033[32m"; GRAY="\033[90m"
+#
+#                  # For every region that lists this module, upload to that region’s bucket
+#                  for REGION in $(yq e 'keys | .[]' "$CONFIG"); do
+#                    if yq -e ".\"$REGION\".modules[] | select(. == \"$module\")" "$CONFIG" > /dev/null 2>&1; then
+#                      BUCKET="$(yq -r ".\"$REGION\".bucket" "$CONFIG")"
+#                deploy-runner.yml
+#                      echo -e "\n${BOLD}${CYAN}[$REGION]${RESET}  s3://${BUCKET}/${S3_KEY}"
+#
+#                      if aws s3api head-object --region "$REGION" --bucket "$BUCKET" --key "$S3_KEY" > /dev/null 2>&1; then
+#                        echo -e "   ${YELLOW}Skipped${RESET} — already exists"
+#
+#                      else
+#                        aws s3 rm "s3://$BUCKET/$module/" --recursive --region "$REGION"
+#                        aws s3 cp "$ZIP_NAME" "s3://$BUCKET/$S3_KEY" --region "$REGION" --content-type application/zip
+#                        echo -e "   ${GREEN}Uploaded${RESET}"
+#
+#                      fi
+#                    fi
+#                  done
+#
+#                  popd > /dev/null
+#                done
+#
+#            - name: Install yq
+#              run: |
+#                sudo wget https://github.com/mikefarah/yq/releases/download/v4.44.1/yq_linux_amd64 -O /usr/bin/yq
+#                sudo chmod +x /usr/bin/yq
+#
+#            - name: Redeploy Lambdas
+#              run: |
+#                chmod +x ${{ inputs.working_dir }}/utils/redeploy_sync.sh
+#                ${{ inputs.working_dir }}/utils/redeploy_sync.sh ${{ inputs.working_dir }}/utils/lambda_config/redeploy_manifest
+#
+##    deploy_terraform:
+##      name: Run Terraform Deployment
+##      needs: zip_and_upload
+##      uses: rash-ms/planet-workflow/.github/workflows/infra-deployer.yml@1.0.0
+##      permissions:
+##        id-token: write
+##        contents: read
+##      with:
+##        version: ${{ inputs.version }}
+##        working_dir: ${{ inputs.working_dir }}
+##        infra_dir: ${{ inputs.infra_dir }}
+##        aws_default_region: ${{ inputs.aws_default_region }}
+##        environment_plan: ${{ inputs.environment_plan }}
+##        environment_apply: ${{ inputs.environment_apply }}
+##        main_branch: ${{ inputs.main_branch }}
+##        selected_modules: ${{ inputs.selected_modules }}
+##      secrets:
+##        account_id: ${{ secrets.account_id }}
+##        role_to_assume: ${{ secrets.role_to_assume }}
+##        destroyer_token: ${{ secrets.destroyer_token }}
+##        render_webhook_url: ${{ secrets.render_webhook_url }}
+##        tf_env_vars: |
+##            TF_VAR_slack_webhook_url=${{ secrets.slack_env_vars }}
+##            TF_VAR_shared_handler_zip=${{ needs.zip_and_upload.outputs.shared_handler_zip }}

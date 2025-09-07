@@ -21,7 +21,7 @@ pick_zip_key() {
   local REGION="$1" BUCKET="$2" PREFIX="$3"
   local CANDIDATES KEY
 
-  # List all keys under prefix and pick the one that ends with .zip
+  # List all keys
   CANDIDATES=$(aws s3api list-objects-v2 \
                  --region "$REGION" \
                  --bucket "$BUCKET" \
@@ -52,13 +52,13 @@ for MF in "${MANIFESTS[@]}"; do
     echo -e "→ ${CYAN}$FN${RESET}"
     echo -e "   ${CYAN}bucket=${BUCKET} prefix=${PREFIX} handler=${HANDLER_EXPORT}${RESET}"
 
-    # normalize handler (treat null/empty as absent)
+    # normalize handler
     if [[ -z "${HANDLER_EXPORT:-}" || "${HANDLER_EXPORT}" == "null" ]]; then
       HANDLER_EXPORT=""
     fi
 
     if [[ -z "$REGION" ]]; then
-      echo -e "   ${RED}No region mapped for manifest prefix '${prefix_tag}' — skipping.${RESET}"
+      echo -e "   ${RED}No region mapped '${prefix_tag}' — skipping.${RESET}"
       continue
     fi
     if ! aws lambda get-function --region "$REGION" --function-name "$FN" >/dev/null 2>&1; then
@@ -79,7 +79,7 @@ for MF in "${MANIFESTS[@]}"; do
       continue
     fi
     if ! aws s3api head-object --region "$REGION" --bucket "$BUCKET" --key "$KEY" >/dev/null 2>&1; then
-      echo -e "   ${YELLOW}File missing or inaccessible: s3://$BUCKET/$KEY — skipping.${RESET}"
+      echo -e "   ${YELLOW}File missing: s3://$BUCKET/$KEY — skipping.${RESET}"
       continue
     fi
 
@@ -109,10 +109,10 @@ for MF in "${MANIFESTS[@]}"; do
       echo -e "   ${YELLOW}No code change — skipped code update.${RESET}"
     fi
 
-    # Wait until Lambda finishes any update before touching configuration
+    # Wait until Lambda finishes any update
     aws lambda wait function-updated --region "$REGION" --function-name "$FN" || true
 
-    # Re-fetch handler AFTER wait so we compare against the latest config
+    # Re-fetch handler AFTER wait
     CUR_HANDLER="$(aws lambda get-function-configuration \
       --region "$REGION" --function-name "$FN" \
       --query 'Handler' --output text)"
@@ -135,113 +135,3 @@ for MF in "${MANIFESTS[@]}"; do
     fi
   done
 done
-
-
-
-
-
-
-
-##!/usr/bin/env bash
-#set -euo pipefail
-#
-## Colors
-#RED="\033[1;31m"
-#GREEN="\033[1;32m"
-#YELLOW="\033[1;33m"
-#MAGENTA="\033[1;35m"
-#CYAN="\033[1;36m"
-#RESET="\033[0m"
-#
-#MANIFEST_DIR="infra/utils/lambda_config/redeploy_manifest"
-#
-#map_region() {
-#  case "$1" in
-#    us) echo "us-east-1" ;;
-#    eu) echo "eu-central-1" ;;
-#    ap) echo "ap-northeast-1" ;;
-#    *)  echo ""; return 1 ;;
-#  esac
-#}
-#
-#mapfile -t MANIFESTS < <(find "$MANIFEST_DIR" -type f -name '*-lambda-manifest.yaml' | sort)
-#
-#for MF in "${MANIFESTS[@]}"; do
-#  base="$(basename "$MF")"
-#  prefix="${base%%-*}"
-#  REGION="$(map_region "$prefix" || true)"
-#
-#  echo -e "\n${MAGENTA}================================"
-#  echo -e " Manifest: ${CYAN}$MF${RESET}"
-#  echo -e " Region:   ${YELLOW}$REGION${RESET}"
-#  echo -e "================================${RESET}\n"
-#
-#  # read function_name + bucket (+ optional prefix)
-#  # read: function_name, bucket, prefix(from key), optional filename
-#  yq -r '.[] | [.function_name, .bucket, (.key // .prefix // ""), (.filename // "")] | @tsv' "$MF" |
-#  while IFS=$'\t' read -r FN BUCKET PREFIX FILENAME; do
-#    [[ -z "${FN:-}" ]] && continue
-#    echo -e "→ ${CYAN}$FN${RESET}"
-#
-#    # ensure function exists
-#    if ! aws lambda get-function --region "$REGION" --function-name "$FN" >/dev/null 2>&1; then
-#      echo -e "   ${RED}[$FN] not found in $REGION — skipping.${RESET}"
-#      continue
-#    fi
-#
-#    # normalize prefix (allow empty -> default to "<function_name>/")
-#    if [[ -z "${PREFIX}" ]]; then
-#      PREFIX="${FN}/"
-#    elif [[ "${PREFIX}" != */ ]]; then
-#      PREFIX="${PREFIX}/"
-#    fi
-#
-#    if [[ -n "${FILENAME}" ]]; then
-#      # exact file requested
-#      KEY="${PREFIX}${FILENAME}"
-#      if ! aws s3api head-object --region "$REGION" --bucket "$BUCKET" --key "$KEY" >/dev/null 2>&1; then
-#        echo -e "   ${YELLOW}File not found: s3://$BUCKET/$KEY — skipping.${RESET}"
-#        continue
-#      fi
-#    else
-#      # pick most recent .zip under the prefix
-#      KEY=$(aws s3api list-objects-v2 \
-#              --region "$REGION" \
-#              --bucket "$BUCKET" \
-#              --prefix "$PREFIX" \
-#              --query 'reverse(sort_by(Contents[?ends_with(Key, `.zip`)==`true`], &LastModified))[:1].Key' \
-#              --output text 2>/dev/null || true)
-#      if [[ -z "$KEY" || "$KEY" == "None" ]]; then
-#        echo -e "   ${YELLOW}No .zip found under s3://$BUCKET/${PREFIX} — skipping.${RESET}"
-#        continue
-#      fi
-#    fi
-#
-#    echo -e "   Using: s3://$BUCKET/$KEY"
-#
-#    # fetch current lambda hash
-#    CUR_HASH=$(aws lambda get-function-configuration \
-#      --region "$REGION" --function-name "$FN" \
-#      --query 'CodeSha256' --output text)
-#
-#    # hash chosen artifact
-#    TMP_ZIP="$(mktemp)"
-#    aws s3 cp --region "$REGION" "s3://$BUCKET/$KEY" "$TMP_ZIP" >/dev/null
-#    NEW_HASH=$(openssl dgst -binary -sha256 "$TMP_ZIP" | openssl base64)
-#    rm -f "$TMP_ZIP"
-#
-#    if [[ "$CUR_HASH" == "$NEW_HASH" ]]; then
-#      echo -e "   ${YELLOW}No code change — skipped.${RESET}"
-#      continue
-#    fi
-#
-#    aws lambda update-function-code \
-#      --region "$REGION" \
-#      --function-name "$FN" \
-#      --s3-bucket "$BUCKET" \
-#      --s3-key "$KEY" \
-#      --publish >/dev/null
-#
-#    echo -e "   ${GREEN}Updated${RESET} from s3://$BUCKET/$KEY"
-#  done
-#done
