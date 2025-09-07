@@ -16,19 +16,12 @@ map_region() {
   esac
 }
 
-# Pick the zip key under a prefix. If FILENAME is present but isn't a .zip, ignore it.
 pick_zip_key() {
-  # Args: REGION BUCKET PREFIX FILENAME
-  local REGION="$1" BUCKET="$2" PREFIX="$3" FILENAME="${4:-}"
-  local KEY CANDIDATES
+  # Args: REGION BUCKET PREFIX
+  local REGION="$1" BUCKET="$2" PREFIX="$3"
+  local CANDIDATES KEY
 
-  if [[ -n "$FILENAME" && "$FILENAME" == *.zip ]]; then
-    KEY="${PREFIX}${FILENAME}"
-    echo "$KEY"
-    return 0
-  fi
-
-  # List all keys, pick the one that ends with .zip (you keep exactly one)
+  # List all keys under prefix and pick the one that ends with .zip
   CANDIDATES=$(aws s3api list-objects-v2 \
                  --region "$REGION" \
                  --bucket "$BUCKET" \
@@ -52,14 +45,12 @@ for MF in "${MANIFESTS[@]}"; do
   echo -e " Region:   ${YELLOW}${REGION:-<unknown>}${RESET}"
   echo -e "================================${RESET}\n"
 
-  # TSV: function_name, bucket, key/prefix, optional filename, optional handler(export only)
-  yq -r '.[] | [.function_name, .bucket, (.key // .prefix // ""), (.filename // ""), (.handler // "")] | @tsv' "$MF" |
-  while IFS=$'\t' read -r FN BUCKET PREFIX FILENAME HANDLER_EXPORT; do
+  # TSV: function_name, bucket, key/prefix, handler(export only)
+  yq -r '.[] | [.function_name, .bucket, (.key // .prefix // ""), .handler] | @tsv' "$MF" |
+  while IFS=$'\t' read -r FN BUCKET PREFIX HANDLER_EXPORT; do
     [[ -z "${FN:-}" ]] && continue
     echo -e "→ ${CYAN}$FN${RESET}"
-
-    # quick debug of parsed fields (comment out if noisy)
-    echo -e "   ${CYAN}bucket=${BUCKET} prefix=${PREFIX} filename=${FILENAME:-<empty>} handler=${HANDLER_EXPORT:-<empty>}${RESET}"
+    echo -e "   ${CYAN}bucket=${BUCKET} prefix=${PREFIX} handler=${HANDLER_EXPORT}${RESET}"
 
     if [[ -z "$REGION" ]]; then
       echo -e "   ${RED}No region mapped for manifest prefix '${prefix_tag}' — skipping.${RESET}"
@@ -77,7 +68,7 @@ for MF in "${MANIFESTS[@]}"; do
       PREFIX="${PREFIX}/"
     fi
 
-    KEY="$(pick_zip_key "$REGION" "$BUCKET" "$PREFIX" "$FILENAME")"
+    KEY="$(pick_zip_key "$REGION" "$BUCKET" "$PREFIX")"
     if [[ -z "$KEY" || "$KEY" == "None" ]]; then
       echo -e "   ${YELLOW}No .zip found under s3://$BUCKET/${PREFIX}${RESET}"
       continue
@@ -100,7 +91,7 @@ for MF in "${MANIFESTS[@]}"; do
     NEW_HASH=$(openssl dgst -binary -sha256 "$TMP_ZIP" | openssl base64)
     rm -f "$TMP_ZIP"
 
-    # update code only if changed (single call)
+    # update function code only if hash changed
     if [[ "$CUR_HASH" != "$NEW_HASH" ]]; then
       aws lambda update-function-code \
         --region "$REGION" \
@@ -113,7 +104,7 @@ for MF in "${MANIFESTS[@]}"; do
       echo -e "   ${YELLOW}No code change — skipped code update.${RESET}"
     fi
 
-    # update handler: module from zip name, export from YAML
+    # build handler from zip name + YAML export and update if needed
     if [[ -n "${HANDLER_EXPORT}" ]]; then
       ZIP_BASENAME="$(basename "$KEY")"   # e.g. firehose_handler_v2.zip
       MODULE_NAME="${ZIP_BASENAME%.zip}"  # -> firehose_handler_v2
@@ -131,6 +122,7 @@ for MF in "${MANIFESTS[@]}"; do
     fi
   done
 done
+
 
 
 
