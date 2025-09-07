@@ -1,9 +1,7 @@
 - function_name: cppv2_sqs_lambda_firehose_ap
   bucket: cn-infra-lambda-artifacts-stg-ap
   key: sqs-lambda-mapping
-#  /firehose_handler_v1.zip
 
 - function_name: my-func-2
   bucket: my-artifacts-bucket
   key: lambdas
-#  my-func-2/2.1.0/build.zip

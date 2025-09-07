@@ -1,9 +1,7 @@
 - function_name: cppv2_sqs_lambda_firehose_us
   bucket: cn-infra-lambda-artifacts
   key: sqs-lambda-mapping
-#  /firehose_handler_v1.zip
 
 - function_name: cpp_integration_slackbot_lambda-function
   bucket: cn-infra-lambda-artifacts
   key: slack-alert-lambda
-#  /lambda_handler_v1.zip
