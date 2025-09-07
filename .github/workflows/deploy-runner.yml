@@ -129,7 +129,8 @@ jobs:
               id: handler_zip
               run: |
                 WORKING_DIR="${{ inputs.working_dir }}"
-                CONFIG="$WORKING_DIR/utils/lambda_config/artifact_ci_config.yaml"
+                CONFIG="$GITHUB_WORKSPACE/$WORKING_DIR/utils/lambda_config/redeploy_manifest/artifact_ci_config.yaml"
+
             
                 [[ -f "$CONFIG" ]] || { echo "Config not found: $CONFIG"; exit 1; }
 
@@ -137,7 +138,7 @@ jobs:
                 mapfile -t MODULES < <(yq -r '.[] | .modules[]' "$CONFIG" | sort -u)
                           
                 for module in "${MODULES[@]}"; do
-                  module_dir="$WORKING_DIR/push-artifact-s3/$module"
+                  module_dir="$GITHUB_WORKSPACE/$WORKING_DIR/push-artifact-s3/$module"
             
                   echo -e "\n---------------\n\033[1;35mmodule: $module_dir\033[0m\n---------------\n"
 
@@ -146,7 +147,6 @@ jobs:
                     continue
                   fi
                   
-                  cd "$module_dir"
                   BUILD_DIR=".zip_build"
                   rm -rf "$BUILD_DIR" && mkdir "$BUILD_DIR"
             
